@@ -1,4 +1,4 @@
--- Solaris GUI v11.9 (Aimbot Completely Fixed)
+-- Solaris GUI v12.1 (All Fixed)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -10,7 +10,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "11.9"
+local Version = "12.1"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -22,6 +22,7 @@ local NoclipConnection = nil
 local ESPConnection = nil
 local ScannerConnection = nil
 local AutoClickerConnection = nil
+local AimbotConnection = nil
 
 local KeyCooldown = {}
 
@@ -38,6 +39,7 @@ local AutoClickerSettings = {
 }
 
 local AimTarget = "Head"
+local AimKey = Enum.UserInputType.MouseButton2
 local IgnoredTeamColor = "None"
 local IsAiming = false
 
@@ -212,6 +214,7 @@ CloseButton.MouseButton1Click:Connect(function()
     if ESPConnection then ESPConnection:Disconnect() end
     if ScannerConnection then ScannerConnection:Disconnect() end
     if AutoClickerConnection then AutoClickerConnection:Disconnect() end
+    if AimbotConnection then AimbotConnection:Disconnect() end
     ScreenGui:Destroy()
 end)
 
@@ -364,6 +367,7 @@ local function ToggleESP()
         for _, player in ipairs(Players:GetPlayers()) do
             applyESP(player)
         end
+        Players.PlayerAdded:Connect(applyESP)
         print("ESP включён!")
     else
         for _, player in ipairs(Players:GetPlayers()) do
@@ -404,53 +408,47 @@ local function ToggleAutoClicker()
     end
 end
 
--- ПРОСТОЙ И РАБОЧИЙ АИМБОТ
-local function findNearestTarget()
-    local nearestTarget = nil
-    local nearestDistance = math.huge
-    
-    local myCharacter = getCharacter()
-    if not myCharacter then return nil end
-    
-    local myRoot = myCharacter:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return nil end
-    
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            local character = player.Character
-            local humanoid = character:FindFirstChild("Humanoid")
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
             
             if humanoid and humanoid.Health > 0 and rootPart then
-                -- Проверяем команду
-                local teamColor = player.Team and tostring(player.Team.TeamColor) or "None"
-                if teamColor ~= IgnoredTeamColor then
-                    -- Выбираем часть тела
-                    local targetPart = character:FindFirstChild(AimTarget)
-                    if not targetPart then
-                        targetPart = character:FindFirstChild("Head")
+                local currentTeamColor = player.Team and tostring(player.Team.TeamColor) or "None"
+                if currentTeamColor ~= IgnoredTeamColor then
+                    
+                    local partName = (AimTarget == "Head") and "Head" or "UpperTorso"
+                    if not player.Character:FindFirstChild(partName) then
+                        partName = "Torso"
                     end
-                    if not targetPart then
-                        targetPart = character:FindFirstChild("UpperTorso")
-                    end
-                    if not targetPart then
-                        targetPart = rootPart
+                    if not player.Character:FindFirstChild(partName) then
+                        partName = "HumanoidRootPart"
                     end
                     
+                    local targetPart = player.Character:FindFirstChild(partName)
                     if targetPart then
-                        local distance = (myRoot.Position - rootPart.Position).Magnitude
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
                         
-                        if distance < nearestDistance then
-                            nearestDistance = distance
-                            nearestTarget = targetPart
+                        if onScreen then
+                            local mousePos = UserInputService:GetMouseLocation()
+                            local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                            
+                            if distance < shortestDistance then
+                                closestPlayer = player
+                                shortestDistance = distance
+                            end
                         end
                     end
+                    
                 end
             end
         end
     end
-    
-    return nearestTarget
+    return closestPlayer
 end
 
 local function ToggleAimbot()
@@ -1087,40 +1085,15 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
     end
 end)
 
--- Обработка ПКМ для аимбота
-UserInputService.InputBegan:Connect(function(input)
+-- ЕДИНЫЙ ОБРАБОТЧИК ВВОДА (исправлено дублирование)
+UserInputService.InputBegan:Connect(function(input, gp)
+    -- Обработка ПКМ для аимбота
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
         IsAiming = true
+        return
     end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        IsAiming = false
-    end
-end)
-
--- Цикл аимбота
-RunService.RenderStepped:Connect(function()
-    if AimbotEnabled and IsAiming then
-        local targetPart = findNearestTarget()
-        if targetPart then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
-        end
-    end
-end)
-
-LocalPlayer.CharacterAdded:Connect(function(char)
-    if SpawnPoint then
-        wait(0.5)
-        local root = char:WaitForChild("HumanoidRootPart")
-        if root then 
-            root.CFrame = SpawnPoint 
-        end
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
+    
+    -- Обработка клавиатуры
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
     
     if KeyCooldown[input.KeyCode] and tick() - KeyCooldown[input.KeyCode] < 0.3 then
@@ -1199,5 +1172,40 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        IsAiming = false
+    end
+end)
+
+-- Цикл аимбота
+RunService.RenderStepped:Connect(function()
+    if AimbotEnabled and IsAiming then
+        local targetPlayer = getClosestPlayer()
+        if targetPlayer and targetPlayer.Character then
+            local partName = (AimTarget == "Head") and "Head" or "UpperTorso"
+            if not targetPlayer.Character:FindFirstChild(partName) then partName = "Torso" end
+            if not targetPlayer.Character:FindFirstChild(partName) then partName = "HumanoidRootPart" end
+            
+            local targetPart = targetPlayer.Character:FindFirstChild(partName)
+            if targetPart then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+            end
+        end
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    if SpawnPoint then
+        wait(0.5)
+        local root = char:WaitForChild("HumanoidRootPart")
+        if root then 
+            root.CFrame = SpawnPoint 
+        end
+    end
+end)
+
 print("Solaris GUI v" .. Version .. " загружен!")
-print("Аимбот: B - вкл, ПКМ - наведение на цель")
+print("Все системы работают корректно!")
+print("Аимбот: B - вкл, ПКМ - наведение")
+print("ESP: X - вкл/выкл")
