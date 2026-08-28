@@ -1,23 +1,26 @@
--- Solaris GUI v9.5 (All Buttons)
+-- Solaris GUI v10.1 (AutoClicker Fixed)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "9.5"
+local Version = "10.1"
 
 local FlyEnabled = false
 local NoclipEnabled = false
 local ESPEnabled = false
+local AutoClickerEnabled = false
 local FlyConnection = nil
 local NoclipConnection = nil
 local ESPConnection = nil
 local ScannerConnection = nil
+local AutoClickerConnection = nil
 
 local KeyCooldown = {}
 
@@ -26,6 +29,12 @@ local FlySettings = {
     MinSpeed = 10,
     MaxSpeed = 500,
     Smoothness = 0.3,
+}
+
+local AutoClickerSettings = {
+    Speed = 10,
+    MinSpeed = 1,
+    MaxSpeed = 50,
 }
 
 local QuickPlayers = {
@@ -44,6 +53,8 @@ local Keys = {
     TPMouse = Enum.KeyCode.V,
     CopyCoords = Enum.KeyCode.C,
     ESP = Enum.KeyCode.X,
+    AutoClicker = Enum.KeyCode.LeftBracket, -- [ клавиша
+    AutoClickerSpeed = Enum.KeyCode.Backslash, -- \ клавиша (открывает окно)
 }
 
 local Colors = {
@@ -148,9 +159,78 @@ local function CreateWindow(title, width, height, zIndex)
     return frame
 end
 
+-- Функция для открытия окна настройки скорости автокликера
+local function OpenAutoClickerSpeedSettings()
+    local frame = CreateWindow("⚡ СКОРОСТЬ АВТОКЛИКЕРА", 280, 200, 500)
+    
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Size = UDim2.new(0.9, 0, 0, 40)
+    speedLabel.Position = UDim2.new(0.05, 0, 0, 45)
+    speedLabel.BackgroundColor3 = Colors.Button
+    speedLabel.Text = "Текущая скорость: " .. AutoClickerSettings.Speed .. " кликов/сек"
+    speedLabel.TextColor3 = Colors.Text
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextSize = 13
+    speedLabel.Parent = frame
+    
+    local speedInput = Instance.new("TextBox")
+    speedInput.Size = UDim2.new(0.9, 0, 0, 35)
+    speedInput.Position = UDim2.new(0.05, 0, 0, 95)
+    speedInput.BackgroundColor3 = Colors.Input
+    speedInput.PlaceholderText = "Введи скорость (1-50)"
+    speedInput.Text = tostring(AutoClickerSettings.Speed)
+    speedInput.TextColor3 = Colors.Text
+    speedInput.Font = Enum.Font.Gotham
+    speedInput.TextSize = 12
+    speedInput.Parent = frame
+    
+    local applyBtn = Instance.new("TextButton")
+    applyBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    applyBtn.Position = UDim2.new(0.05, 0, 0, 140)
+    applyBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+    applyBtn.Text = "✅ ПРИМЕНИТЬ"
+    applyBtn.TextColor3 = Colors.Text
+    applyBtn.Font = Enum.Font.GothamBold
+    applyBtn.TextSize = 12
+    applyBtn.Parent = frame
+    
+    applyBtn.MouseButton1Click:Connect(function()
+        local newSpeed = tonumber(speedInput.Text)
+        if newSpeed then
+            AutoClickerSettings.Speed = math.clamp(newSpeed, AutoClickerSettings.MinSpeed, AutoClickerSettings.MaxSpeed)
+            speedLabel.Text = "Текущая скорость: " .. AutoClickerSettings.Speed .. " кликов/сек"
+            speedInput.Text = tostring(AutoClickerSettings.Speed)
+            
+            -- Если автокликер включён, перезапускаем с новой скоростью
+            if AutoClickerEnabled and AutoClickerConnection then
+                AutoClickerConnection:Disconnect()
+                AutoClickerConnection = RunService.RenderStepped:Connect(function()
+                    local delay = 1 / AutoClickerSettings.Speed
+                    wait(delay)
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, nil, 0)
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, nil, 0)
+                end)
+            end
+            
+            print("Скорость автокликера: " .. AutoClickerSettings.Speed .. " кликов/сек")
+        end
+    end)
+    
+    -- Быстрые пресеты
+    local presetsLabel = Instance.new("TextLabel")
+    presetsLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    presetsLabel.Position = UDim2.new(0.05, 0, 0, 180)
+    presetsLabel.BackgroundTransparency = 1
+    presetsLabel.Text = "Быстрые пресеты:"
+    presetsLabel.TextColor3 = Colors.Text
+    presetsLabel.Font = Enum.Font.GothamBold
+    presetsLabel.TextSize = 10
+    presetsLabel.Parent = frame
+end
+
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 280, 0, 320)
+MainFrame.Size = UDim2.new(0, 280, 0, 350)
 MainFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
@@ -195,6 +275,7 @@ CloseButton.MouseButton1Click:Connect(function()
     if NoclipConnection then NoclipConnection:Disconnect() end
     if ESPConnection then ESPConnection:Disconnect() end
     if ScannerConnection then ScannerConnection:Disconnect() end
+    if AutoClickerConnection then AutoClickerConnection:Disconnect() end
     ScreenGui:Destroy()
 end)
 
@@ -443,6 +524,29 @@ local function ToggleESP()
     end
 end
 
+local function ToggleAutoClicker()
+    AutoClickerEnabled = not AutoClickerEnabled
+    
+    if AutoClickerEnabled then
+        if AutoClickerConnection then AutoClickerConnection:Disconnect() end
+        
+        AutoClickerConnection = RunService.RenderStepped:Connect(function()
+            local delay = 1 / AutoClickerSettings.Speed
+            wait(delay)
+            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, nil, 0)
+            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, nil, 0)
+        end)
+        
+        print("Автокликер включён! Скорость: " .. AutoClickerSettings.Speed .. " кликов/сек")
+    else
+        if AutoClickerConnection then 
+            AutoClickerConnection:Disconnect() 
+            AutoClickerConnection = nil 
+        end
+        print("Автокликер выключен!")
+    end
+end
+
 local yPos = 45
 
 local function CreateButton(emoji, text, callback)
@@ -477,6 +581,14 @@ CreateButton("💾", "СОХРАНИТЬ СПАВН", function()
         SpawnPoint = char.HumanoidRootPart.CFrame
         print("Спавн сохранён!")
     end
+end)
+
+CreateButton("🖱️", "АВТОКЛИКЕР", function()
+    ToggleAutoClicker()
+end)
+
+CreateButton("⚡", "СКОРОСТЬ КЛИКЕРА", function()
+    OpenAutoClickerSpeedSettings()
 end)
 
 CreateButton("🔍", "СКАНЕР ПАРТ", function()
@@ -941,7 +1053,7 @@ CreateButton("🎮", "ИГРЫ", function()
 end)
 
 CreateButton("⚙️", "НАСТРОЙКИ", function()
-    local frame = CreateWindow("⚙️ НАСТРОЙКИ КЛАВИШ", 300, 250, 100)
+    local frame = CreateWindow("⚙️ НАСТРОЙКИ КЛАВИШ", 300, 300, 100)
     
     local names = {
         HideGUI = "👁️ Скрыть", 
@@ -949,7 +1061,9 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
         Noclip = "👻 Ноклип", 
         TPMouse = "🖱️ ТП мышь", 
         CopyCoords = "📋 Координаты", 
-        ESP = "🔴 ESP"
+        ESP = "🔴 ESP",
+        AutoClicker = "🖱️ Автокликер",
+        AutoClickerSpeed = "⚡ Скорость кликера"
     }
     
     local y = 40
@@ -1033,6 +1147,14 @@ UserInputService.InputBegan:Connect(function(input, gp)
         ToggleESP() 
     end
     
+    if input.KeyCode == Keys.AutoClicker then 
+        ToggleAutoClicker() 
+    end
+    
+    if input.KeyCode == Keys.AutoClickerSpeed then 
+        OpenAutoClickerSpeedSettings()
+    end
+    
     if input.KeyCode == Enum.KeyCode.KeypadPeriod then
         FlySettings.Speed = IncreaseFlySpeed()
         print("Скорость полёта: " .. FlySettings.Speed)
@@ -1099,6 +1221,8 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function()
     if NoclipConnection then NoclipConnection:Disconnect() end
     if ESPConnection then ESPConnection:Disconnect() end
     if ScannerConnection then ScannerConnection:Disconnect() end
+    if AutoClickerConnection then AutoClickerConnection:Disconnect() end
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
+print("Автокликер: [ - вкл/выкл, \\ - настройка скорости")
