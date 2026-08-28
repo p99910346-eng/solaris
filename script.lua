@@ -1,4 +1,4 @@
--- Solaris GUI v9.0 (Improved Fly System + Full Features)
+-- Solaris GUI v9.1 (Hotkeys Only + Improved Fly)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "9.0"
+local Version = "9.1"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -39,13 +39,13 @@ local QuickPlayers = {
 
 local Keys = {
     HideGUI = Enum.KeyCode.RightShift,
-    Fly = Enum.KeyCode.B,
+    Fly = Enum.KeyCode.KeypadZero,        -- 0 на нумпаде
     Noclip = Enum.KeyCode.N,
     TPMouse = Enum.KeyCode.V,
     CopyCoords = Enum.KeyCode.C,
     ESP = Enum.KeyCode.X,
-    SpeedUp = Enum.KeyCode.PageUp,
-    SpeedDown = Enum.KeyCode.PageDown
+    SpeedUp = Enum.KeyCode.KeypadPeriod,   -- . на нумпаде
+    SpeedDown = Enum.KeyCode.KeypadComma   -- , на нумпаде (если есть)
 }
 
 local Colors = {
@@ -161,7 +161,7 @@ local function CreateWindow(title, width, height, zIndex)
 end
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 280, 0, 360)
+MainFrame.Size = UDim2.new(0, 280, 0, 280)
 MainFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
@@ -207,6 +207,23 @@ CloseButton.MouseButton1Click:Connect(function()
     if ScannerConnection then ScannerConnection:Disconnect() end
     ScreenGui:Destroy()
 end)
+
+-- Информационная панель
+local InfoPanel = Instance.new("Frame")
+InfoPanel.Size = UDim2.new(0.9, 0, 0, 60)
+InfoPanel.Position = UDim2.new(0.05, 0, 0, 45)
+InfoPanel.BackgroundColor3 = Colors.ScrollBg
+InfoPanel.Parent = MainFrame
+
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Size = UDim2.new(1, 0, 1, 0)
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.Text = "КЛАВИШИ:\n0 - Полёт | . - Скорость+\nX - ESP | N - Ноклип"
+InfoLabel.TextColor3 = Colors.Text
+InfoLabel.Font = Enum.Font.Gotham
+InfoLabel.TextSize = 10
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+InfoLabel.Parent = InfoPanel
 
 local function SmoothTP(targetCFrame)
     local char = getCharacter()
@@ -304,6 +321,8 @@ local function ToggleFly()
                 rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + lookDirection)
             end
         end)
+        
+        print("Полёт включён! Скорость: " .. FlySettings.Speed)
     else
         if FlyConnection then 
             FlyConnection:Disconnect() 
@@ -316,6 +335,8 @@ local function ToggleFly()
             char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
             char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
         end
+        
+        print("Полёт выключен!")
     end
 end
 
@@ -333,6 +354,7 @@ local function ToggleNoclip()
                 end
             end
         end)
+        print("Ноклип включён!")
     else
         if NoclipConnection then 
             NoclipConnection:Disconnect() 
@@ -346,6 +368,7 @@ local function ToggleNoclip()
                 end
             end
         end
+        print("Ноклип выключен!")
     end
 end
 
@@ -423,6 +446,7 @@ local function ToggleESP()
                 end
             end
         end)
+        print("ESP включён!")
     else
         if ESPConnection then 
             ESPConnection:Disconnect() 
@@ -442,10 +466,11 @@ local function ToggleESP()
                 end
             end
         end
+        print("ESP выключен!")
     end
 end
 
-local yPos = 45
+local yPos = 110
 
 local function CreateButton(emoji, text, callback)
     local Button = Instance.new("TextButton")
@@ -477,129 +502,6 @@ CreateButton("💾", "СОХРАНИТЬ СПАВН", function()
     if char and char:FindFirstChild("HumanoidRootPart") then
         SpawnPoint = char.HumanoidRootPart.CFrame
     end
-end)
-
-CreateButton("✈️", "ПОЛЁТ (" .. Keys.Fly.Name .. ")", function()
-    ToggleFly()
-end)
-
-CreateButton("⚙️", "НАСТРОЙКИ ПОЛЁТА", function()
-    local frame = CreateWindow("⚙️ НАСТРОЙКИ ПОЛЁТА", 300, 350, 100)
-    
-    local speedLabel = Instance.new("TextLabel")
-    speedLabel.Size = UDim2.new(0.9, 0, 0, 40)
-    speedLabel.Position = UDim2.new(0.05, 0, 0, 45)
-    speedLabel.BackgroundColor3 = Colors.Button
-    speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
-    speedLabel.TextColor3 = Colors.Text
-    speedLabel.Font = Enum.Font.GothamBold
-    speedLabel.TextSize = 14
-    speedLabel.Parent = frame
-    
-    local speedSlider = Instance.new("TextBox")
-    speedSlider.Size = UDim2.new(0.9, 0, 0, 35)
-    speedSlider.Position = UDim2.new(0.05, 0, 0, 95)
-    speedSlider.BackgroundColor3 = Colors.Input
-    speedSlider.Text = tostring(FlySettings.Speed)
-    speedSlider.PlaceholderText = "Введи скорость (10-500)"
-    speedSlider.TextColor3 = Colors.Text
-    speedSlider.Font = Enum.Font.Gotham
-    speedSlider.TextSize = 12
-    speedSlider.Parent = frame
-    
-    local applyBtn = Instance.new("TextButton")
-    applyBtn.Size = UDim2.new(0.9, 0, 0, 35)
-    applyBtn.Position = UDim2.new(0.05, 0, 0, 140)
-    applyBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-    applyBtn.Text = "✅ ПРИМЕНИТЬ СКОРОСТЬ"
-    applyBtn.TextColor3 = Colors.Text
-    applyBtn.Font = Enum.Font.GothamBold
-    applyBtn.TextSize = 11
-    applyBtn.Parent = frame
-    
-    applyBtn.MouseButton1Click:Connect(function()
-        local newSpeed = tonumber(speedSlider.Text)
-        if newSpeed then
-            FlySettings.Speed = ChangeFlySpeed(newSpeed)
-            speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
-        end
-    end)
-    
-    local decreaseBtn = Instance.new("TextButton")
-    decreaseBtn.Size = UDim2.new(0.42, 0, 0, 40)
-    decreaseBtn.Position = UDim2.new(0.05, 0, 0, 185)
-    decreaseBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-    decreaseBtn.Text = "➖ МЕДЛЕННЕЕ"
-    decreaseBtn.TextColor3 = Colors.Text
-    decreaseBtn.Font = Enum.Font.GothamBold
-    decreaseBtn.TextSize = 11
-    decreaseBtn.Parent = frame
-    
-    decreaseBtn.MouseButton1Click:Connect(function()
-        FlySettings.Speed = DecreaseFlySpeed()
-        speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
-        speedSlider.Text = tostring(FlySettings.Speed)
-    end)
-    
-    local increaseBtn = Instance.new("TextButton")
-    increaseBtn.Size = UDim2.new(0.42, 0, 0, 40)
-    increaseBtn.Position = UDim2.new(0.53, 0, 0, 185)
-    increaseBtn.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
-    increaseBtn.Text = "➕ БЫСТРЕЕ"
-    increaseBtn.TextColor3 = Colors.Text
-    increaseBtn.Font = Enum.Font.GothamBold
-    increaseBtn.TextSize = 11
-    increaseBtn.Parent = frame
-    
-    increaseBtn.MouseButton1Click:Connect(function()
-        FlySettings.Speed = IncreaseFlySpeed()
-        speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
-        speedSlider.Text = tostring(FlySettings.Speed)
-    end)
-    
-    local presetsLabel = Instance.new("TextLabel")
-    presetsLabel.Size = UDim2.new(0.9, 0, 0, 25)
-    presetsLabel.Position = UDim2.new(0.05, 0, 0, 235)
-    presetsLabel.BackgroundColor3 = Colors.TitleBar
-    presetsLabel.Text = "БЫСТРЫЕ ПРЕСЕТЫ:"
-    presetsLabel.TextColor3 = Colors.Text
-    presetsLabel.Font = Enum.Font.GothamBold
-    presetsLabel.TextSize = 10
-    presetsLabel.Parent = frame
-    
-    local presets = {
-        {name = "🐢 25", speed = 25},
-        {name = "🚶 50", speed = 50},
-        {name = "🏃 100", speed = 100},
-        {name = "🚀 200", speed = 200},
-        {name = "⚡ 500", speed = 500}
-    }
-    
-    for i, preset in ipairs(presets) do
-        local presetBtn = Instance.new("TextButton")
-        presetBtn.Size = UDim2.new(0.28, 0, 0, 30)
-        presetBtn.Position = UDim2.new(0.05 + ((i - 1) % 3) * 0.31, 0, 0, 265 + math.floor((i - 1) / 3) * 35)
-        presetBtn.BackgroundColor3 = Colors.Button
-        presetBtn.Text = preset.name
-        presetBtn.TextColor3 = Colors.Text
-        presetBtn.Font = Enum.Font.Gotham
-        presetBtn.TextSize = 9
-        presetBtn.Parent = frame
-        
-        presetBtn.MouseButton1Click:Connect(function()
-            FlySettings.Speed = ChangeFlySpeed(preset.speed)
-            speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
-            speedSlider.Text = tostring(FlySettings.Speed)
-        end)
-    end
-end)
-
-CreateButton("👻", "НОКЛИП (" .. Keys.Noclip.Name .. ")", function()
-    ToggleNoclip()
-end)
-
-CreateButton("🔴", "ESP (" .. Keys.ESP.Name .. ")", function()
-    ToggleESP()
 end)
 
 CreateButton("🔍", "СКАНЕР ПАРТ", function()
@@ -1049,59 +951,6 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 5)
 end)
 
-CreateButton("⚙️", "НАСТРОЙКИ КЛАВИШ", function()
-    local frame = CreateWindow("⚙️ НАСТРОЙКИ КЛАВИШ", 300, 250, 100)
-    
-    local names = {
-        HideGUI = "👁️ Скрыть", 
-        Fly = "✈️ Полёт", 
-        Noclip = "👻 Ноклип", 
-        TPMouse = "🖱️ ТП мышь", 
-        CopyCoords = "📋 Координаты", 
-        ESP = "🔴 ESP",
-        SpeedUp = "⬆️ Скорость+",
-        SpeedDown = "⬇️ Скорость-"
-    }
-    
-    local y = 40
-    for key, display in pairs(names) do
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(0.5, 0, 0, 30)
-        lbl.Position = UDim2.new(0.05, 0, 0, y)
-        lbl.BackgroundColor3 = Colors.Button
-        lbl.Text = display
-        lbl.TextColor3 = Colors.Text
-        lbl.Font = Enum.Font.GothamBold
-        lbl.TextSize = 11
-        lbl.Parent = frame
-        
-        local keyBtn = Instance.new("TextButton")
-        keyBtn.Size = UDim2.new(0.4, 0, 0, 30)
-        keyBtn.Position = UDim2.new(0.55, 0, 0, y)
-        keyBtn.BackgroundColor3 = Colors.Button
-        keyBtn.Text = Keys[key].Name
-        keyBtn.TextColor3 = Colors.Text
-        keyBtn.Font = Enum.Font.GothamBold
-        keyBtn.TextSize = 10
-        keyBtn.Parent = frame
-        
-        keyBtn.MouseButton1Click:Connect(function()
-            keyBtn.Text = "⌨️..."
-            local conn
-            
-            conn = UserInputService.InputBegan:Connect(function(input, gp)
-                if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
-                    Keys[key] = input.KeyCode
-                    keyBtn.Text = input.KeyCode.Name
-                    conn:Disconnect()
-                end
-            end)
-        end)
-        
-        y += 35
-    end
-end)
-
 LocalPlayer.CharacterAdded:Connect(function(char)
     if SpawnPoint then
         wait(0.5)
@@ -1116,7 +965,7 @@ end)
 UserInputService.InputBegan:Connect(function(input, gp)
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
     
-    if KeyCooldown[input.KeyCode] and tick() - KeyCooldown[input.KeyCode] < 0.5 then
+    if KeyCooldown[input.KeyCode] and tick() - KeyCooldown[input.KeyCode] < 0.3 then
         return
     end
     
@@ -1150,7 +999,12 @@ UserInputService.InputBegan:Connect(function(input, gp)
         print("Скорость полёта: " .. FlySettings.Speed)
     end
     
-    if input.KeyCode == Keys.SpeedDown then
+    if input.KeyCode == Enum.KeyCode.KeypadPeriod then
+        FlySettings.Speed = IncreaseFlySpeed()
+        print("Скорость полёта: " .. FlySettings.Speed)
+    end
+    
+    if input.KeyCode == Enum.KeyCode.KeypadMinus then
         FlySettings.Speed = DecreaseFlySpeed()
         print("Скорость полёта: " .. FlySettings.Speed)
     end
@@ -1214,5 +1068,5 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function()
 end)
 
 print("Solaris GUI v" .. Version .. " готов!")
-print("Улучшенный полёт активирован!")
-print("Нумпад 1-9 работает! Сканер полный!")
+print("Клавиши: 0 - Полёт, . - Скорость+, N - Ноклип, X - ESP")
+print("Нумпад 1-9 - Точки ТП")
