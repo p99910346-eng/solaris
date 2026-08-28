@@ -1,4 +1,4 @@
--- Solaris GUI v10.9 (No Games)
+-- Solaris GUI v11.1 (Neon Scanner Added)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,17 +9,19 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "10.9"
+local Version = "11.1"
 
 local FlyEnabled = false
 local NoclipEnabled = false
 local ESPEnabled = false
 local AutoClickerEnabled = false
+local AimbotEnabled = false
 local FlyConnection = nil
 local NoclipConnection = nil
 local ESPConnection = nil
 local ScannerConnection = nil
 local AutoClickerConnection = nil
+local AimbotConnection = nil
 
 local KeyCooldown = {}
 
@@ -33,6 +35,11 @@ local AutoClickerSettings = {
     Speed = 10,
     MinSpeed = 1,
     MaxSpeed = 50,
+}
+
+local AimbotSettings = {
+    Smoothness = 0.5,
+    TargetPart = "Head",
 }
 
 local QuickPlayers = {
@@ -54,6 +61,7 @@ local Keys = {
     AutoClicker = Enum.KeyCode.LeftBracket,
     AutoClickerSpeed = Enum.KeyCode.Equals,
     FlySpeedWindow = Enum.KeyCode.KeypadPeriod,
+    Aimbot = Enum.KeyCode.B,
 }
 
 local Colors = {
@@ -196,6 +204,7 @@ CloseButton.MouseButton1Click:Connect(function()
     if ESPConnection then ESPConnection:Disconnect() end
     if ScannerConnection then ScannerConnection:Disconnect() end
     if AutoClickerConnection then AutoClickerConnection:Disconnect() end
+    if AimbotConnection then AimbotConnection:Disconnect() end
     ScreenGui:Destroy()
 end)
 
@@ -429,6 +438,75 @@ local function ToggleAutoClicker()
     end
 end
 
+local function GetClosestPlayer()
+    local closestPlayer = nil
+    local closestDistance = math.huge
+    
+    local char = getCharacter()
+    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local targetChar = player.Character
+            local targetHumanoid = targetChar:FindFirstChild("Humanoid")
+            local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+            
+            if targetHumanoid and targetHumanoid.Health > 0 and targetRoot then
+                local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+local function ToggleAimbot()
+    AimbotEnabled = not AimbotEnabled
+    
+    if AimbotEnabled then
+        if AimbotConnection then AimbotConnection:Disconnect() end
+        
+        AimbotConnection = RunService.RenderStepped:Connect(function()
+            local target = GetClosestPlayer()
+            
+            if target and target.Character then
+                local targetPart = target.Character:FindFirstChild(AimbotSettings.TargetPart)
+                if not targetPart then
+                    targetPart = target.Character:FindFirstChild("Head")
+                end
+                
+                if targetPart then
+                    local camera = workspace.CurrentCamera
+                    local targetPosition = targetPart.Position
+                    
+                    local cameraCFrame = camera.CFrame
+                    local lookAt = CFrame.new(cameraCFrame.Position, targetPosition)
+                    
+                    if AimbotSettings.Smoothness > 0 then
+                        camera.CFrame = cameraCFrame:Lerp(lookAt, AimbotSettings.Smoothness)
+                    else
+                        camera.CFrame = lookAt
+                    end
+                end
+            end
+        end)
+        
+        print("Аимбот включён!")
+    else
+        if AimbotConnection then 
+            AimbotConnection:Disconnect() 
+            AimbotConnection = nil 
+        end
+        print("Аимбот выключен!")
+    end
+end
+
 local function OpenFlySpeedWindow()
     local frame = CreateWindow("FlySpeedWindow", "✈️ СКОРОСТЬ ПОЛЁТА", 280, 250)
     
@@ -591,77 +669,126 @@ CreateButton("💾", "СОХРАНИТЬ СПАВН", function()
     end
 end)
 
-CreateButton("🔍", "СКАНЕР ПАРТ", function()
-    local ScannerFrame = CreateWindow("ScannerWindow", "🔍 СКАНЕР", 320, 340)
+-- НЕОНОВЫЙ СКАНЕР
+CreateButton("🔮", "СКАНЕР ОБЪЕКТОВ", function()
+    local NeonScanner = Instance.new("Frame")
+    NeonScanner.Name = "LuxuryExplorerFrame"
+    NeonScanner.Parent = ScreenGui
+    NeonScanner.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+    NeonScanner.Position = UDim2.new(0.35, 0, 0.25, 0)
+    NeonScanner.Size = UDim2.new(0, 320, 0, 340)
+    NeonScanner.Active = true
+    NeonScanner.Draggable = true
     
-    local isSelecting = false
-    local currentHighlight = Instance.new("Highlight")
+    local UICorner_Main = Instance.new("UICorner")
+    UICorner_Main.CornerRadius = UDim.new(0, 16)
+    UICorner_Main.Parent = NeonScanner
+    
+    local UIStroke_Main = Instance.new("UIStroke")
+    UIStroke_Main.Color = Color3.fromRGB(255, 0, 180)
+    UIStroke_Main.Thickness = 2.5
+    UIStroke_Main.Parent = NeonScanner
+    
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Parent = NeonScanner
+    Title.BackgroundColor3 = Color3.fromRGB(22, 15, 35)
+    Title.Size = UDim2.new(1, 0, 0, 45)
+    Title.Font = Enum.Font.GothamBold
+    Title.Text = "🔮 INSTANCE SCANNER v3"
+    Title.TextColor3 = Color3.fromRGB(255, 200, 255)
+    Title.TextSize = 15
+    
+    local UICorner_Title = Instance.new("UICorner")
+    UICorner_Title.CornerRadius = UDim.new(0, 16)
+    UICorner_Title.Parent = Title
     
     local ToggleSelector = Instance.new("TextButton")
-    ToggleSelector.Size = UDim2.new(0.9, 0, 0, 35)
-    ToggleSelector.Position = UDim2.new(0.05, 0, 0, 40)
-    ToggleSelector.BackgroundColor3 = Colors.Button
-    ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
-    ToggleSelector.TextColor3 = Color3.fromRGB(100, 100, 120)
+    ToggleSelector.Name = "ToggleSelector"
+    ToggleSelector.Parent = NeonScanner
+    ToggleSelector.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
+    ToggleSelector.Position = UDim2.new(0.05, 0, 0.16, 0)
+    ToggleSelector.Size = UDim2.new(0.9, 0, 0, 40)
     ToggleSelector.Font = Enum.Font.GothamBold
-    ToggleSelector.TextSize = 11
-    ToggleSelector.Parent = ScannerFrame
+    ToggleSelector.Text = "SELECTOR: OFF (CLICK TO START)"
+    ToggleSelector.TextColor3 = Color3.fromRGB(255, 50, 100)
+    ToggleSelector.TextSize = 12
+    
+    local UICorner_Btn = Instance.new("UICorner")
+    UICorner_Btn.CornerRadius = UDim.new(0, 8)
+    UICorner_Btn.Parent = ToggleSelector
     
     local InfoContainer = Instance.new("Frame")
-    InfoContainer.Size = UDim2.new(0.9, 0, 0, 230)
-    InfoContainer.Position = UDim2.new(0.05, 0, 0, 85)
-    InfoContainer.BackgroundColor3 = Colors.ScrollBg
-    InfoContainer.Parent = ScannerFrame
+    InfoContainer.Name = "InfoContainer"
+    InfoContainer.Parent = NeonScanner
+    InfoContainer.BackgroundColor3 = Color3.fromRGB(20, 18, 28)
+    InfoContainer.Position = UDim2.new(0.05, 0, 0.31, 0)
+    InfoContainer.Size = UDim2.new(0.9, 0, 0, 215)
+    
+    local UICorner_Info = Instance.new("UICorner")
+    UICorner_Info.CornerRadius = UDim.new(0, 10)
+    UICorner_Info.Parent = InfoContainer
     
     local NameLabel = Instance.new("TextLabel")
-    NameLabel.Size = UDim2.new(0.94, 0, 0, 22)
-    NameLabel.Position = UDim2.new(0.03, 0, 0, 5)
-    NameLabel.BackgroundTransparency = 1
-    NameLabel.Text = "Выбрано: Ничего"
-    NameLabel.TextColor3 = Colors.Text
-    NameLabel.Font = Enum.Font.GothamBold
-    NameLabel.TextSize = 12
+    NameLabel.Name = "NameLabel"
     NameLabel.Parent = InfoContainer
+    NameLabel.BackgroundTransparency = 1
+    NameLabel.Position = UDim2.new(0.03, 0, 0.02, 0)
+    NameLabel.Size = UDim2.new(0.94, 0, 0, 25)
+    NameLabel.Font = Enum.Font.GothamBold
+    NameLabel.Text = "Selected: None"
+    NameLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+    NameLabel.TextSize = 13
+    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
     
     local PathLabel = Instance.new("TextBox")
-    PathLabel.Size = UDim2.new(0.94, 0, 0, 40)
-    PathLabel.Position = UDim2.new(0.03, 0, 0, 30)
-    PathLabel.BackgroundColor3 = Colors.Input
-    PathLabel.Text = "Путь появится здесь..."
-    PathLabel.TextColor3 = Colors.Text
+    PathLabel.Name = "PathLabel"
+    PathLabel.Parent = InfoContainer
+    PathLabel.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
+    PathLabel.Position = UDim2.new(0.03, 0, 0.15, 0)
+    PathLabel.Size = UDim2.new(0.94, 0, 0, 45)
     PathLabel.Font = Enum.Font.Code
-    PathLabel.TextSize = 10
+    PathLabel.Text = "Game Path will appear here... (Click to copy)"
+    PathLabel.TextColor3 = Color3.fromRGB(255, 255, 150)
+    PathLabel.TextSize = 11
     PathLabel.TextWrapped = true
     PathLabel.ClearTextOnFocus = false
     PathLabel.TextEditable = false
-    PathLabel.Parent = InfoContainer
     
     local ChildrenScroll = Instance.new("ScrollingFrame")
-    ChildrenScroll.Size = UDim2.new(0.94, 0, 0, 150)
-    ChildrenScroll.Position = UDim2.new(0.03, 0, 0, 75)
+    ChildrenScroll.Name = "ChildrenScroll"
+    ChildrenScroll.Parent = InfoContainer
     ChildrenScroll.BackgroundTransparency = 1
+    ChildrenScroll.Position = UDim2.new(0.03, 0, 0.40, 0)
+    ChildrenScroll.Size = UDim2.new(0.94, 0, 0, 115)
     ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     ChildrenScroll.ScrollBarThickness = 4
-    ChildrenScroll.Parent = InfoContainer
+    
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.Parent = ChildrenScroll
+    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    UIListLayout.Padding = UDim.new(0, 4)
+    
+    local isSelecting = false
+    local currentHighlight = Instance.new("Highlight")
+    currentHighlight.FillColor = Color3.fromRGB(255, 0, 150)
+    currentHighlight.FillTransparency = 0.6
+    currentHighlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    currentHighlight.OutlineTransparency = 0
     
     local function getCleanPath(obj)
         local path = obj.Name
         local parent = obj.Parent
-        
         while parent and parent ~= game do
             local safeName = parent.Name
-            local needsQuotes = string.find(safeName, " ") or string.find(safeName, "[%p]") or string.match(safeName, "^%d")
-            
-            if needsQuotes then
-                path = '["' .. safeName .. '"]' .. "." .. path
+            if string.find(safeName, " ") or string.find(safeName, "%p") then
+                path = '["' .. safeName .. '"]' .. (path:sub(1,1) == "[" and "" or ".") .. path
             else
-                path = safeName .. "." .. path
+                path = safeName .. (path:sub(1,1) == "[" and "" or ".") .. path
             end
-            
             parent = parent.Parent
         end
-        
-        return 'game:GetService("Workspace").' .. path
+        return "game:GetService(\"Workspace\")." .. path:gsub("^Workspace%.", ""):gsub("^workspace%.", "")
     end
     
     local function updateChildrenList(obj)
@@ -670,22 +797,37 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
         end
         
         local children = obj:GetChildren()
-        ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, #children * 20)
+        ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, #children * 22)
         
-        for i, child in ipairs(children) do
-            local itemLabel = Instance.new("TextLabel")
-            itemLabel.Size = UDim2.new(1, 0, 0, 18)
-            itemLabel.BackgroundColor3 = Color3.fromRGB(230, 230, 235)
-            itemLabel.Font = Enum.Font.Gotham
-            itemLabel.Text = " 📦 " .. child.Name
-            itemLabel.TextColor3 = Colors.Text
-            itemLabel.TextSize = 10
-            itemLabel.Parent = ChildrenScroll
+        if #children == 0 then
+            local emptyLabel = Instance.new("TextLabel")
+            emptyLabel.Size = UDim2.new(1, 0, 0, 20)
+            emptyLabel.BackgroundTransparency = 1
+            emptyLabel.Font = Enum.Font.GothamItalic
+            emptyLabel.Text = "[ No children inside this object ]"
+            emptyLabel.TextColor3 = Color3.fromRGB(130, 130, 140)
+            emptyLabel.TextSize = 12
+            emptyLabel.Parent = ChildrenScroll
+        else
+            for _, child in pairs(children) do
+                local itemLabel = Instance.new("TextLabel")
+                itemLabel.Size = UDim2.new(1, 0, 0, 18)
+                itemLabel.BackgroundColor3 = Color3.fromRGB(28, 24, 38)
+                itemLabel.Font = Enum.Font.Gotham
+                itemLabel.Text = " 📦 " .. child.Name .. " (" .. child.ClassName .. ")"
+                itemLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+                itemLabel.TextSize = 11
+                itemLabel.TextXAlignment = Enum.TextXAlignment.Left
+                itemLabel.Parent = ChildrenScroll
+                
+                local itemCorner = Instance.new("UICorner")
+                itemCorner.CornerRadius = UDim.new(0, 4)
+                itemCorner.Parent = itemLabel
+            end
         end
     end
     
-    if ScannerConnection then ScannerConnection:Disconnect() end
-    ScannerConnection = RunService.RenderStepped:Connect(function()
+    RunService.RenderStepped:Connect(function()
         if isSelecting and Mouse.Target then
             currentHighlight.Parent = Mouse.Target
         else
@@ -696,8 +838,10 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     Mouse.Button1Down:Connect(function()
         if isSelecting and Mouse.Target then
             local target = Mouse.Target
-            NameLabel.Text = "Имя: " .. target.Name
+            
+            NameLabel.Text = "Name: " .. target.Name .. " [" .. target.ClassName .. "]"
             PathLabel.Text = getCleanPath(target)
+            
             updateChildrenList(target)
             
             pcall(function()
@@ -705,16 +849,25 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
             end)
             
             isSelecting = false
-            ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
+            ToggleSelector.Text = "SELECTOR: OFF (CLICK TO START)"
+            ToggleSelector.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
+            ToggleSelector.TextColor3 = Color3.fromRGB(255, 50, 100)
+            UIStroke_Main.Color = Color3.fromRGB(255, 0, 180)
         end
     end)
     
     ToggleSelector.MouseButton1Click:Connect(function()
         isSelecting = not isSelecting
         if isSelecting then
-            ToggleSelector.Text = "НАВЕДИ И НАЖМИ"
+            ToggleSelector.Text = "AIM & CLICK ANY OBJECT IN GAME"
+            ToggleSelector.BackgroundColor3 = Color3.fromRGB(20, 60, 45)
+            ToggleSelector.TextColor3 = Color3.fromRGB(50, 255, 150)
+            UIStroke_Main.Color = Color3.fromRGB(50, 255, 150)
         else
-            ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
+            ToggleSelector.Text = "SELECTOR: OFF (CLICK TO START)"
+            ToggleSelector.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
+            ToggleSelector.TextColor3 = Color3.fromRGB(255, 50, 100)
+            UIStroke_Main.Color = Color3.fromRGB(255, 0, 180)
         end
     end)
 end)
@@ -952,7 +1105,7 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
 end)
 
 CreateButton("⚙️", "НАСТРОЙКИ", function()
-    local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ", 300, 340)
+    local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ", 300, 370)
     
     local names = {
         HideGUI = "👁️ Скрыть", 
@@ -963,7 +1116,8 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
         ESP = "🔴 ESP",
         AutoClicker = "🖱️ Кликер",
         AutoClickerSpeed = "⚡ Скорость кликера",
-        FlySpeedWindow = "✈️ Скорость полёта"
+        FlySpeedWindow = "✈️ Скорость полёта",
+        Aimbot = "🎯 Аимбот"
     }
     
     local y = 40
@@ -1041,6 +1195,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode == Keys.AutoClicker then ToggleAutoClicker() end
     if input.KeyCode == Keys.AutoClickerSpeed then OpenAutoClickerSpeedWindow() end
     if input.KeyCode == Keys.FlySpeedWindow then OpenFlySpeedWindow() end
+    if input.KeyCode == Keys.Aimbot then ToggleAimbot() end
     
     if input.KeyCode == Keys.TPMouse then
         local char = getCharacter()
@@ -1094,3 +1249,5 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
+print("Аимбот: B - вкл/выкл")
+print("Сканер: 🔮 - неоновый сканер")
