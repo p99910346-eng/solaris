@@ -1,4 +1,4 @@
--- Solaris GUI v9.4 (Clean GUI + Games)
+-- Solaris GUI v9.5 (All Buttons)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "9.4"
+local Version = "9.5"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -37,6 +37,15 @@ local QuickPlayers = {
     "Dfgvmg2"
 }
 
+local Keys = {
+    HideGUI = Enum.KeyCode.RightShift,
+    Fly = Enum.KeyCode.KeypadZero,
+    Noclip = Enum.KeyCode.N,
+    TPMouse = Enum.KeyCode.V,
+    CopyCoords = Enum.KeyCode.C,
+    ESP = Enum.KeyCode.X,
+}
+
 local Colors = {
     Frame = Color3.fromRGB(255, 255, 255),
     TitleBar = Color3.fromRGB(230, 230, 240),
@@ -52,7 +61,6 @@ local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
 
--- Создаём GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SolarisGUI"
 ScreenGui.ResetOnSpawn = false
@@ -140,10 +148,9 @@ local function CreateWindow(title, width, height, zIndex)
     return frame
 end
 
--- Главный фрейм
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 280, 0, 270)
+MainFrame.Size = UDim2.new(0, 280, 0, 320)
 MainFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
@@ -931,10 +938,57 @@ CreateButton("🎮", "ИГРЫ", function()
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 10
     btn.Parent = frame
+end)
+
+CreateButton("⚙️", "НАСТРОЙКИ", function()
+    local frame = CreateWindow("⚙️ НАСТРОЙКИ КЛАВИШ", 300, 250, 100)
     
-    btn.MouseButton1Click:Connect(function()
-        game:GetService("TeleportService"):Teleport(1234567890, LocalPlayer)
-    end)
+    local names = {
+        HideGUI = "👁️ Скрыть", 
+        Fly = "✈️ Полёт", 
+        Noclip = "👻 Ноклип", 
+        TPMouse = "🖱️ ТП мышь", 
+        CopyCoords = "📋 Координаты", 
+        ESP = "🔴 ESP"
+    }
+    
+    local y = 40
+    for key, display in pairs(names) do
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0.5, 0, 0, 30)
+        lbl.Position = UDim2.new(0.05, 0, 0, y)
+        lbl.BackgroundColor3 = Colors.Button
+        lbl.Text = display
+        lbl.TextColor3 = Colors.Text
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 11
+        lbl.Parent = frame
+        
+        local keyBtn = Instance.new("TextButton")
+        keyBtn.Size = UDim2.new(0.4, 0, 0, 30)
+        keyBtn.Position = UDim2.new(0.55, 0, 0, y)
+        keyBtn.BackgroundColor3 = Colors.Button
+        keyBtn.Text = Keys[key].Name
+        keyBtn.TextColor3 = Colors.Text
+        keyBtn.Font = Enum.Font.GothamBold
+        keyBtn.TextSize = 10
+        keyBtn.Parent = frame
+        
+        keyBtn.MouseButton1Click:Connect(function()
+            keyBtn.Text = "⌨️..."
+            local conn
+            
+            conn = UserInputService.InputBegan:Connect(function(input, gp)
+                if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
+                    Keys[key] = input.KeyCode
+                    keyBtn.Text = input.KeyCode.Name
+                    conn:Disconnect()
+                end
+            end)
+        end)
+        
+        y += 35
+    end
 end)
 
 LocalPlayer.CharacterAdded:Connect(function(char)
@@ -956,7 +1010,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
     
     KeyCooldown[input.KeyCode] = tick()
     
-    if input.KeyCode == Enum.KeyCode.RightShift then
+    if input.KeyCode == Keys.HideGUI then
         GUIHidden = not GUIHidden
         for _, child in ipairs(ScreenGui:GetChildren()) do
             if child:IsA("Frame") then 
@@ -967,15 +1021,15 @@ UserInputService.InputBegan:Connect(function(input, gp)
     
     if gp then return end
     
-    if input.KeyCode == Enum.KeyCode.KeypadZero then 
+    if input.KeyCode == Keys.Fly then 
         ToggleFly() 
     end
     
-    if input.KeyCode == Enum.KeyCode.N then 
+    if input.KeyCode == Keys.Noclip then 
         ToggleNoclip() 
     end
     
-    if input.KeyCode == Enum.KeyCode.X then 
+    if input.KeyCode == Keys.ESP then 
         ToggleESP() 
     end
     
@@ -989,14 +1043,14 @@ UserInputService.InputBegan:Connect(function(input, gp)
         print("Скорость полёта: " .. FlySettings.Speed)
     end
     
-    if input.KeyCode == Enum.KeyCode.V then
+    if input.KeyCode == Keys.TPMouse then
         local char = getCharacter()
         if char and char:FindFirstChild("HumanoidRootPart") then
             SmoothTP(CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0)))
         end
     end
     
-    if input.KeyCode == Enum.KeyCode.C then
+    if input.KeyCode == Keys.CopyCoords then
         local char = getCharacter()
         if char and char:FindFirstChild("HumanoidRootPart") then
             local p = char.HumanoidRootPart.Position
