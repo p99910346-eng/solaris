@@ -1,4 +1,4 @@
--- Solaris GUI v10.7 (Bigger Windows)
+-- Solaris GUI v10.8 (Fixed Button Sizes)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "10.7"
+local Version = "10.8"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -128,24 +128,24 @@ local function CreateWindow(windowName, title, width, height)
     corner.Parent = frame
     
     local titleBar = Instance.new("TextLabel")
-    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.Size = UDim2.new(1, 0, 0, 30)
     titleBar.BackgroundColor3 = Colors.TitleBar
     titleBar.Text = title
     titleBar.TextColor3 = Colors.Text
     titleBar.Font = Enum.Font.GothamBold
-    titleBar.TextSize = 12
+    titleBar.TextSize = 11
     titleBar.Parent = frame
     
     MakeDraggable(frame, titleBar)
     
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 25, 0, 25)
-    closeBtn.Position = UDim2.new(1, -30, 0, 5)
+    closeBtn.Size = UDim2.new(0, 22, 0, 22)
+    closeBtn.Position = UDim2.new(1, -27, 0, 4)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
     closeBtn.Text = "✕"
     closeBtn.TextColor3 = Colors.Text
     closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 12
+    closeBtn.TextSize = 10
     closeBtn.Parent = titleBar
     
     closeBtn.MouseButton1Click:Connect(function()
@@ -158,7 +158,7 @@ local function CreateWindow(windowName, title, width, height)
 end
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 280, 0, 310)
+MainFrame.Size = UDim2.new(0, 260, 0, 290)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
@@ -169,25 +169,25 @@ UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
 local TitleBar = Instance.new("TextLabel")
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.Size = UDim2.new(1, 0, 0, 35)
 TitleBar.BackgroundColor3 = Colors.TitleBar
 TitleBar.Text = "⚡ СОЛАРИС ХАБ v" .. Version .. " ⚡"
 TitleBar.TextColor3 = Colors.Text
 TitleBar.Font = Enum.Font.GothamBold
-TitleBar.TextSize = 13
+TitleBar.TextSize = 12
 TitleBar.TextXAlignment = Enum.TextXAlignment.Center
 TitleBar.Parent = MainFrame
 
 MakeDraggable(MainFrame, TitleBar)
 
 local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.new(0, 25, 0, 25)
-CloseButton.Position = UDim2.new(1, -30, 0, 7)
+CloseButton.Size = UDim2.new(0, 22, 0, 22)
+CloseButton.Position = UDim2.new(1, -27, 0, 6)
 CloseButton.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
 CloseButton.Text = "✕"
 CloseButton.TextColor3 = Colors.Text
 CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 12
+CloseButton.TextSize = 10
 CloseButton.Parent = TitleBar
 
 CloseButton.MouseButton1Click:Connect(function()
@@ -430,81 +430,81 @@ local function ToggleAutoClicker()
 end
 
 local function OpenFlySpeedWindow()
-    local frame = CreateWindow("FlySpeedWindow", "✈️ СКОРОСТЬ ПОЛЁТА", 300, 280)
+    local frame = CreateWindow("FlySpeedWindow", "✈️ СКОРОСТЬ ПОЛЁТА", 280, 250)
     
     local speedLabel = Instance.new("TextLabel")
-    speedLabel.Size = UDim2.new(0.9, 0, 0, 40)
-    speedLabel.Position = UDim2.new(0.05, 0, 0, 45)
+    speedLabel.Size = UDim2.new(0.9, 0, 0, 35)
+    speedLabel.Position = UDim2.new(0.05, 0, 0, 40)
     speedLabel.BackgroundColor3 = Colors.Button
-    speedLabel.Text = "Текущая скорость: " .. FlySettings.Speed
+    speedLabel.Text = "Скорость: " .. FlySettings.Speed
     speedLabel.TextColor3 = Colors.Text
     speedLabel.Font = Enum.Font.GothamBold
-    speedLabel.TextSize = 14
+    speedLabel.TextSize = 12
     speedLabel.Parent = frame
     
     local speedInput = Instance.new("TextBox")
-    speedInput.Size = UDim2.new(0.9, 0, 0, 35)
-    speedInput.Position = UDim2.new(0.05, 0, 0, 95)
+    speedInput.Size = UDim2.new(0.9, 0, 0, 30)
+    speedInput.Position = UDim2.new(0.05, 0, 0, 80)
     speedInput.BackgroundColor3 = Colors.Input
-    speedInput.PlaceholderText = "Скорость (10-500)"
+    speedInput.PlaceholderText = "10-500"
     speedInput.Text = tostring(FlySettings.Speed)
     speedInput.TextColor3 = Colors.Text
     speedInput.Font = Enum.Font.Gotham
-    speedInput.TextSize = 12
+    speedInput.TextSize = 11
     speedInput.Parent = frame
     
     local applyBtn = Instance.new("TextButton")
-    applyBtn.Size = UDim2.new(0.9, 0, 0, 35)
-    applyBtn.Position = UDim2.new(0.05, 0, 0, 140)
+    applyBtn.Size = UDim2.new(0.9, 0, 0, 30)
+    applyBtn.Position = UDim2.new(0.05, 0, 0, 115)
     applyBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
     applyBtn.Text = "✅ ПРИМЕНИТЬ"
     applyBtn.TextColor3 = Colors.Text
     applyBtn.Font = Enum.Font.GothamBold
-    applyBtn.TextSize = 12
+    applyBtn.TextSize = 11
     applyBtn.Parent = frame
     
     applyBtn.MouseButton1Click:Connect(function()
         local newSpeed = tonumber(speedInput.Text)
         if newSpeed then
             FlySettings.Speed = math.clamp(newSpeed, FlySettings.MinSpeed, FlySettings.MaxSpeed)
-            speedLabel.Text = "Текущая скорость: " .. FlySettings.Speed
+            speedLabel.Text = "Скорость: " .. FlySettings.Speed
             speedInput.Text = tostring(FlySettings.Speed)
             print("Скорость полёта: " .. FlySettings.Speed)
         end
     end)
     
     local presetsLabel = Instance.new("TextLabel")
-    presetsLabel.Size = UDim2.new(0.9, 0, 0, 25)
-    presetsLabel.Position = UDim2.new(0.05, 0, 0, 185)
+    presetsLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    presetsLabel.Position = UDim2.new(0.05, 0, 0, 150)
     presetsLabel.BackgroundColor3 = Colors.TitleBar
-    presetsLabel.Text = "БЫСТРЫЕ ПРЕСЕТЫ:"
+    presetsLabel.Text = "ПРЕСЕТЫ:"
     presetsLabel.TextColor3 = Colors.Text
     presetsLabel.Font = Enum.Font.GothamBold
-    presetsLabel.TextSize = 10
+    presetsLabel.TextSize = 9
     presetsLabel.Parent = frame
     
     local presets = {
-        {name = "🐢 25", speed = 25},
-        {name = "🚶 50", speed = 50},
-        {name = "🏃 100", speed = 100},
-        {name = "🚀 200", speed = 200},
-        {name = "⚡ 500", speed = 500}
+        {name = "25", speed = 25},
+        {name = "50", speed = 50},
+        {name = "100", speed = 100},
+        {name = "200", speed = 200},
+        {name = "500", speed = 500}
     }
     
     for i, preset in ipairs(presets) do
         local presetBtn = Instance.new("TextButton")
-        presetBtn.Size = UDim2.new(0.28, 0, 0, 35)
-        presetBtn.Position = UDim2.new(0.05 + ((i - 1) % 3) * 0.31, 0, 0, 215 + math.floor((i - 1) / 3) * 40)
+        presetBtn.Size = UDim2.new(0.17, 0, 0, 25)
+        presetBtn.Position = UDim2.new(0.05 + ((i - 1) % 5) * 0.18, 0, 0, 175)
         presetBtn.BackgroundColor3 = Colors.Button
         presetBtn.Text = preset.name
         presetBtn.TextColor3 = Colors.Text
-        presetBtn.Font = Enum.Font.Gotham
-        presetBtn.TextSize = 10
+        presetBtn.Font = Enum.Font.GothamBold
+        presetBtn.TextSize = 9
         presetBtn.Parent = frame
         
         presetBtn.MouseButton1Click:Connect(function()
             FlySettings.Speed = preset.speed
-            speedLabel.Text = "Текущая скорость: " .. FlySettings.Speed
+            speedLabel.Text = "Скорость: " .. FlySettings.Speed
             speedInput.Text = tostring(FlySettings.Speed)
             print("Скорость полёта: " .. FlySettings.Speed)
         end)
@@ -512,71 +512,61 @@ local function OpenFlySpeedWindow()
 end
 
 local function OpenAutoClickerSpeedWindow()
-    local frame = CreateWindow("AutoClickerSpeedWindow", "⚡ СКОРОСТЬ АВТОКЛИКЕРА", 300, 220)
+    local frame = CreateWindow("AutoClickerSpeedWindow", "⚡ СКОРОСТЬ КЛИКЕРА", 280, 200)
     
     local speedLabel = Instance.new("TextLabel")
-    speedLabel.Size = UDim2.new(0.9, 0, 0, 40)
-    speedLabel.Position = UDim2.new(0.05, 0, 0, 45)
+    speedLabel.Size = UDim2.new(0.9, 0, 0, 35)
+    speedLabel.Position = UDim2.new(0.05, 0, 0, 40)
     speedLabel.BackgroundColor3 = Colors.Button
-    speedLabel.Text = "Текущая скорость: " .. AutoClickerSettings.Speed .. " кликов/сек"
+    speedLabel.Text = "Скорость: " .. AutoClickerSettings.Speed .. "/сек"
     speedLabel.TextColor3 = Colors.Text
     speedLabel.Font = Enum.Font.GothamBold
-    speedLabel.TextSize = 14
+    speedLabel.TextSize = 12
     speedLabel.Parent = frame
     
     local speedInput = Instance.new("TextBox")
-    speedInput.Size = UDim2.new(0.9, 0, 0, 35)
-    speedInput.Position = UDim2.new(0.05, 0, 0, 95)
+    speedInput.Size = UDim2.new(0.9, 0, 0, 30)
+    speedInput.Position = UDim2.new(0.05, 0, 0, 80)
     speedInput.BackgroundColor3 = Colors.Input
-    speedInput.PlaceholderText = "Скорость (1-50)"
+    speedInput.PlaceholderText = "1-50"
     speedInput.Text = tostring(AutoClickerSettings.Speed)
     speedInput.TextColor3 = Colors.Text
     speedInput.Font = Enum.Font.Gotham
-    speedInput.TextSize = 12
+    speedInput.TextSize = 11
     speedInput.Parent = frame
     
     local applyBtn = Instance.new("TextButton")
-    applyBtn.Size = UDim2.new(0.9, 0, 0, 35)
-    applyBtn.Position = UDim2.new(0.05, 0, 0, 140)
+    applyBtn.Size = UDim2.new(0.9, 0, 0, 30)
+    applyBtn.Position = UDim2.new(0.05, 0, 0, 115)
     applyBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
     applyBtn.Text = "✅ ПРИМЕНИТЬ"
     applyBtn.TextColor3 = Colors.Text
     applyBtn.Font = Enum.Font.GothamBold
-    applyBtn.TextSize = 12
+    applyBtn.TextSize = 11
     applyBtn.Parent = frame
     
     applyBtn.MouseButton1Click:Connect(function()
         local newSpeed = tonumber(speedInput.Text)
         if newSpeed then
             AutoClickerSettings.Speed = math.clamp(newSpeed, AutoClickerSettings.MinSpeed, AutoClickerSettings.MaxSpeed)
-            speedLabel.Text = "Текущая скорость: " .. AutoClickerSettings.Speed .. " кликов/сек"
+            speedLabel.Text = "Скорость: " .. AutoClickerSettings.Speed .. "/сек"
             speedInput.Text = tostring(AutoClickerSettings.Speed)
-            print("Скорость автокликера: " .. AutoClickerSettings.Speed .. " кликов/сек")
+            print("Скорость автокликера: " .. AutoClickerSettings.Speed)
         end
     end)
-    
-    local presetsLabel = Instance.new("TextLabel")
-    presetsLabel.Size = UDim2.new(0.9, 0, 0, 25)
-    presetsLabel.Position = UDim2.new(0.05, 0, 0, 185)
-    presetsLabel.BackgroundColor3 = Colors.TitleBar
-    presetsLabel.Text = "БЫСТРЫЕ ПРЕСЕТЫ:"
-    presetsLabel.TextColor3 = Colors.Text
-    presetsLabel.Font = Enum.Font.GothamBold
-    presetsLabel.TextSize = 10
-    presetsLabel.Parent = frame
 end
 
-local yPos = 45
+local yPos = 40
 
 local function CreateButton(emoji, text, callback)
     local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(0.9, 0, 0, 38)
+    Button.Size = UDim2.new(0.9, 0, 0, 35)
     Button.Position = UDim2.new(0.05, 0, 0, yPos)
     Button.BackgroundColor3 = Colors.Button
     Button.Text = emoji .. " " .. text
     Button.TextColor3 = Colors.Text
     Button.Font = Enum.Font.GothamBold
-    Button.TextSize = 12
+    Button.TextSize = 11
     Button.Parent = MainFrame
     
     Button.MouseEnter:Connect(function() 
@@ -589,7 +579,7 @@ local function CreateButton(emoji, text, callback)
     
     Button.MouseButton1Click:Connect(callback)
     
-    yPos += 43
+    yPos += 40
     return Button
 end
 
@@ -602,53 +592,53 @@ CreateButton("💾", "СОХРАНИТЬ СПАВН", function()
 end)
 
 CreateButton("🔍", "СКАНЕР ПАРТ", function()
-    local ScannerFrame = CreateWindow("ScannerWindow", "🔍 СКАНЕР ОБЪЕКТОВ", 340, 360)
+    local ScannerFrame = CreateWindow("ScannerWindow", "🔍 СКАНЕР", 320, 340)
     
     local isSelecting = false
     local currentHighlight = Instance.new("Highlight")
     
     local ToggleSelector = Instance.new("TextButton")
-    ToggleSelector.Size = UDim2.new(0.9, 0, 0, 40)
-    ToggleSelector.Position = UDim2.new(0.05, 0, 0, 45)
+    ToggleSelector.Size = UDim2.new(0.9, 0, 0, 35)
+    ToggleSelector.Position = UDim2.new(0.05, 0, 0, 40)
     ToggleSelector.BackgroundColor3 = Colors.Button
     ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
     ToggleSelector.TextColor3 = Color3.fromRGB(100, 100, 120)
     ToggleSelector.Font = Enum.Font.GothamBold
-    ToggleSelector.TextSize = 12
+    ToggleSelector.TextSize = 11
     ToggleSelector.Parent = ScannerFrame
     
     local InfoContainer = Instance.new("Frame")
     InfoContainer.Size = UDim2.new(0.9, 0, 0, 230)
-    InfoContainer.Position = UDim2.new(0.05, 0, 0, 95)
+    InfoContainer.Position = UDim2.new(0.05, 0, 0, 85)
     InfoContainer.BackgroundColor3 = Colors.ScrollBg
     InfoContainer.Parent = ScannerFrame
     
     local NameLabel = Instance.new("TextLabel")
-    NameLabel.Size = UDim2.new(0.94, 0, 0, 25)
+    NameLabel.Size = UDim2.new(0.94, 0, 0, 22)
     NameLabel.Position = UDim2.new(0.03, 0, 0, 5)
     NameLabel.BackgroundTransparency = 1
     NameLabel.Text = "Выбрано: Ничего"
     NameLabel.TextColor3 = Colors.Text
     NameLabel.Font = Enum.Font.GothamBold
-    NameLabel.TextSize = 13
+    NameLabel.TextSize = 12
     NameLabel.Parent = InfoContainer
     
     local PathLabel = Instance.new("TextBox")
-    PathLabel.Size = UDim2.new(0.94, 0, 0, 45)
-    PathLabel.Position = UDim2.new(0.03, 0, 0, 35)
+    PathLabel.Size = UDim2.new(0.94, 0, 0, 40)
+    PathLabel.Position = UDim2.new(0.03, 0, 0, 30)
     PathLabel.BackgroundColor3 = Colors.Input
     PathLabel.Text = "Путь появится здесь..."
     PathLabel.TextColor3 = Colors.Text
     PathLabel.Font = Enum.Font.Code
-    PathLabel.TextSize = 11
+    PathLabel.TextSize = 10
     PathLabel.TextWrapped = true
     PathLabel.ClearTextOnFocus = false
     PathLabel.TextEditable = false
     PathLabel.Parent = InfoContainer
     
     local ChildrenScroll = Instance.new("ScrollingFrame")
-    ChildrenScroll.Size = UDim2.new(0.94, 0, 0, 130)
-    ChildrenScroll.Position = UDim2.new(0.03, 0, 0, 88)
+    ChildrenScroll.Size = UDim2.new(0.94, 0, 0, 150)
+    ChildrenScroll.Position = UDim2.new(0.03, 0, 0, 75)
     ChildrenScroll.BackgroundTransparency = 1
     ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     ChildrenScroll.ScrollBarThickness = 4
@@ -680,16 +670,16 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
         end
         
         local children = obj:GetChildren()
-        ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, #children * 22)
+        ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, #children * 20)
         
         for i, child in ipairs(children) do
             local itemLabel = Instance.new("TextLabel")
             itemLabel.Size = UDim2.new(1, 0, 0, 18)
             itemLabel.BackgroundColor3 = Color3.fromRGB(230, 230, 235)
             itemLabel.Font = Enum.Font.Gotham
-            itemLabel.Text = " 📦 " .. child.Name .. " (" .. child.ClassName .. ")"
+            itemLabel.Text = " 📦 " .. child.Name
             itemLabel.TextColor3 = Colors.Text
-            itemLabel.TextSize = 11
+            itemLabel.TextSize = 10
             itemLabel.Parent = ChildrenScroll
         end
     end
@@ -706,7 +696,7 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     Mouse.Button1Down:Connect(function()
         if isSelecting and Mouse.Target then
             local target = Mouse.Target
-            NameLabel.Text = "Имя: " .. target.Name .. " [" .. target.ClassName .. "]"
+            NameLabel.Text = "Имя: " .. target.Name
             PathLabel.Text = getCleanPath(target)
             updateChildrenList(target)
             
@@ -722,7 +712,7 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     ToggleSelector.MouseButton1Click:Connect(function()
         isSelecting = not isSelecting
         if isSelecting then
-            ToggleSelector.Text = "НАВЕДИ И НАЖМИ НА ОБЪЕКТ"
+            ToggleSelector.Text = "НАВЕДИ И НАЖМИ"
         else
             ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
         end
@@ -730,23 +720,23 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
 end)
 
 CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
-    local frame = CreateWindow("PointsWindow", "📍 ТОЧКИ (Numpad 1-9)", 320, 320)
+    local frame = CreateWindow("PointsWindow", "📍 ТОЧКИ", 300, 300)
     
     local createBtn = Instance.new("TextButton")
-    createBtn.Size = UDim2.new(0.9, 0, 0, 35)
-    createBtn.Position = UDim2.new(0.05, 0, 0, 45)
+    createBtn.Size = UDim2.new(0.9, 0, 0, 32)
+    createBtn.Position = UDim2.new(0.05, 0, 0, 40)
     createBtn.BackgroundColor3 = Colors.Button
     createBtn.Text = "➕ СОЗДАТЬ ТОЧКУ"
     createBtn.TextColor3 = Colors.Text
     createBtn.Font = Enum.Font.GothamBold
-    createBtn.TextSize = 12
+    createBtn.TextSize = 11
     createBtn.Parent = frame
     
     local list = Instance.new("ScrollingFrame")
-    list.Size = UDim2.new(0.9, 0, 0, 240)
-    list.Position = UDim2.new(0.05, 0, 0, 85)
+    list.Size = UDim2.new(0.9, 0, 0, 225)
+    list.Position = UDim2.new(0.05, 0, 0, 77)
     list.BackgroundColor3 = Colors.ScrollBg
-    list.ScrollBarThickness = 5
+    list.ScrollBarThickness = 4
     list.CanvasSize = UDim2.new(0, 0, 0, 0)
     list.Parent = frame
     
@@ -755,12 +745,12 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
             if child:IsA("Frame") then child:Destroy() end
         end
         
-        local y = 5
+        local y = 3
         for i, point in ipairs(CustomPoints) do
             local idx = i
             local container = Instance.new("Frame")
-            container.Size = UDim2.new(1, -10, 0, 35)
-            container.Position = UDim2.new(0, 5, 0, y)
+            container.Size = UDim2.new(1, -8, 0, 30)
+            container.Position = UDim2.new(0, 4, 0, y)
             container.BackgroundColor3 = Colors.Button
             container.Parent = list
             
@@ -770,7 +760,7 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
             tpBtn.Text = idx .. ". " .. point.Name
             tpBtn.TextColor3 = Colors.Text
             tpBtn.Font = Enum.Font.GothamBold
-            tpBtn.TextSize = 10
+            tpBtn.TextSize = 9
             tpBtn.Parent = container
             tpBtn.MouseButton1Click:Connect(function() 
                 SmoothTP(point.CFrame) 
@@ -781,31 +771,31 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
             renameBtn.Position = UDim2.new(0.6, 0, 0, 0)
             renameBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 220)
             renameBtn.Text = "✏️"
-            renameBtn.TextSize = 11
+            renameBtn.TextSize = 10
             renameBtn.Parent = container
             
             renameBtn.MouseButton1Click:Connect(function()
-                local renameFrame = CreateWindow("RenameWindow", "✏️ ПЕРЕИМЕНОВАТЬ", 280, 120)
+                local renameFrame = CreateWindow("RenameWindow", "✏️ ПЕРЕИМЕНОВАТЬ", 250, 100)
                 
                 local textBox = Instance.new("TextBox")
-                textBox.Size = UDim2.new(0.9, 0, 0, 35)
-                textBox.Position = UDim2.new(0.05, 0, 0, 45)
+                textBox.Size = UDim2.new(0.9, 0, 0, 30)
+                textBox.Position = UDim2.new(0.05, 0, 0, 35)
                 textBox.BackgroundColor3 = Colors.Input
                 textBox.Text = point.Name
                 textBox.TextColor3 = Colors.Text
                 textBox.Font = Enum.Font.Gotham
-                textBox.TextSize = 12
+                textBox.TextSize = 11
                 textBox.ClearTextOnFocus = false
                 textBox.Parent = renameFrame
                 
                 local okBtn = Instance.new("TextButton")
-                okBtn.Size = UDim2.new(0.45, 0, 0, 30)
-                okBtn.Position = UDim2.new(0.05, 0, 0, 85)
+                okBtn.Size = UDim2.new(0.45, 0, 0, 25)
+                okBtn.Position = UDim2.new(0.05, 0, 0, 70)
                 okBtn.BackgroundColor3 = Colors.Button
                 okBtn.Text = "✅ OK"
                 okBtn.TextColor3 = Colors.Text
                 okBtn.Font = Enum.Font.GothamBold
-                okBtn.TextSize = 11
+                okBtn.TextSize = 10
                 okBtn.Parent = renameFrame
                 
                 okBtn.MouseButton1Click:Connect(function()
@@ -817,13 +807,13 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
                 end)
                 
                 local cancelBtn = Instance.new("TextButton")
-                cancelBtn.Size = UDim2.new(0.45, 0, 0, 30)
-                cancelBtn.Position = UDim2.new(0.55, 0, 0, 85)
+                cancelBtn.Size = UDim2.new(0.45, 0, 0, 25)
+                cancelBtn.Position = UDim2.new(0.55, 0, 0, 70)
                 cancelBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 200)
-                cancelBtn.Text = "❌ Отмена"
+                cancelBtn.Text = "❌"
                 cancelBtn.TextColor3 = Colors.Text
                 cancelBtn.Font = Enum.Font.GothamBold
-                cancelBtn.TextSize = 11
+                cancelBtn.TextSize = 10
                 cancelBtn.Parent = renameFrame
                 
                 cancelBtn.MouseButton1Click:Connect(function()
@@ -836,17 +826,17 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
             delBtn.Position = UDim2.new(0.8, 0, 0, 0)
             delBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
             delBtn.Text = "🗑️"
-            delBtn.TextSize = 11
+            delBtn.TextSize = 10
             delBtn.Parent = container
             delBtn.MouseButton1Click:Connect(function()
                 table.remove(CustomPoints, idx)
                 refresh()
             end)
             
-            y += 40
+            y += 33
         end
         
-        list.CanvasSize = UDim2.new(0, 0, 0, math.max(y + 5, 240))
+        list.CanvasSize = UDim2.new(0, 0, 0, math.max(y + 3, 225))
     end
     
     createBtn.MouseButton1Click:Connect(function()
@@ -866,56 +856,56 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
 end)
 
 CreateButton("👤", "ТП К ИГРОКУ", function()
-    local frame = CreateWindow("TeleportWindow", "👤 ТП К ИГРОКУ", 280, 400)
+    local frame = CreateWindow("TeleportWindow", "👤 ТП К ИГРОКУ", 280, 380)
     
     local tb = Instance.new("TextBox")
-    tb.Size = UDim2.new(0.9, 0, 0, 35)
-    tb.Position = UDim2.new(0.05, 0, 0, 45)
+    tb.Size = UDim2.new(0.9, 0, 0, 30)
+    tb.Position = UDim2.new(0.05, 0, 0, 40)
     tb.BackgroundColor3 = Colors.Input
     tb.PlaceholderText = "🔍 Имя игрока..."
     tb.TextColor3 = Colors.Text
     tb.Parent = frame
     
     local tpBtn = Instance.new("TextButton")
-    tpBtn.Size = UDim2.new(0.9, 0, 0, 35)
-    tpBtn.Position = UDim2.new(0.05, 0, 0, 85)
+    tpBtn.Size = UDim2.new(0.9, 0, 0, 30)
+    tpBtn.Position = UDim2.new(0.05, 0, 0, 75)
     tpBtn.BackgroundColor3 = Colors.Button
-    tpBtn.Text = "🚀 ТЕЛЕПОРТИРОВАТЬСЯ"
+    tpBtn.Text = "🚀 ТЕЛЕПОРТ"
     tpBtn.TextColor3 = Colors.Text
     tpBtn.Font = Enum.Font.GothamBold
-    tpBtn.TextSize = 12
+    tpBtn.TextSize = 11
     tpBtn.Parent = frame
     tpBtn.MouseButton1Click:Connect(function() 
         TeleportToPlayer(tb.Text)
     end)
     
     local quickLabel = Instance.new("TextLabel")
-    quickLabel.Size = UDim2.new(0.9, 0, 0, 25)
-    quickLabel.Position = UDim2.new(0.05, 0, 0, 125)
+    quickLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    quickLabel.Position = UDim2.new(0.05, 0, 0, 110)
     quickLabel.BackgroundColor3 = Colors.TitleBar
     quickLabel.Text = "⚡ БЫСТРЫЙ ТП:"
     quickLabel.TextColor3 = Colors.Text
     quickLabel.Font = Enum.Font.GothamBold
-    quickLabel.TextSize = 11
+    quickLabel.TextSize = 9
     quickLabel.Parent = frame
     
     local quickList = Instance.new("ScrollingFrame")
     quickList.Size = UDim2.new(0.9, 0, 0, 120)
-    quickList.Position = UDim2.new(0.05, 0, 0, 155)
+    quickList.Position = UDim2.new(0.05, 0, 0, 135)
     quickList.BackgroundColor3 = Colors.ScrollBg
-    quickList.ScrollBarThickness = 5
-    quickList.CanvasSize = UDim2.new(0, 0, 0, #QuickPlayers * 40)
+    quickList.ScrollBarThickness = 4
+    quickList.CanvasSize = UDim2.new(0, 0, 0, #QuickPlayers * 33)
     quickList.Parent = frame
     
     for i, pName in ipairs(QuickPlayers) do
         local qBtn = Instance.new("TextButton")
-        qBtn.Size = UDim2.new(1, -10, 0, 35)
-        qBtn.Position = UDim2.new(0, 5, 0, (i-1) * 40 + 5)
+        qBtn.Size = UDim2.new(1, -8, 0, 28)
+        qBtn.Position = UDim2.new(0, 4, 0, (i-1) * 33 + 3)
         qBtn.BackgroundColor3 = Colors.Button
         qBtn.Text = "⚡ " .. pName
         qBtn.TextColor3 = Colors.Text
         qBtn.Font = Enum.Font.GothamBold
-        qBtn.TextSize = 11
+        qBtn.TextSize = 10
         qBtn.Parent = quickList
         qBtn.MouseButton1Click:Connect(function() 
             TeleportToPlayer(pName) 
@@ -923,60 +913,60 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     end
     
     local serverLabel = Instance.new("TextLabel")
-    serverLabel.Size = UDim2.new(0.9, 0, 0, 25)
-    serverLabel.Position = UDim2.new(0.05, 0, 0, 285)
+    serverLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    serverLabel.Position = UDim2.new(0.05, 0, 0, 260)
     serverLabel.BackgroundColor3 = Colors.TitleBar
-    serverLabel.Text = "👥 ИГРОКИ НА СЕРВЕРЕ:"
+    serverLabel.Text = "👥 ИГРОКИ:"
     serverLabel.TextColor3 = Colors.Text
     serverLabel.Font = Enum.Font.GothamBold
-    serverLabel.TextSize = 11
+    serverLabel.TextSize = 9
     serverLabel.Parent = frame
     
     local serverList = Instance.new("ScrollingFrame")
     serverList.Size = UDim2.new(0.9, 0, 0, 100)
-    serverList.Position = UDim2.new(0.05, 0, 0, 315)
+    serverList.Position = UDim2.new(0.05, 0, 0, 285)
     serverList.BackgroundColor3 = Colors.ScrollBg
-    serverList.ScrollBarThickness = 5
+    serverList.ScrollBarThickness = 4
     serverList.CanvasSize = UDim2.new(0, 0, 0, 0)
     serverList.Parent = frame
     
-    local sy = 5
+    local sy = 3
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
             local sBtn = Instance.new("TextButton")
-            sBtn.Size = UDim2.new(1, -10, 0, 35)
-            sBtn.Position = UDim2.new(0, 5, 0, sy)
+            sBtn.Size = UDim2.new(1, -8, 0, 28)
+            sBtn.Position = UDim2.new(0, 4, 0, sy)
             sBtn.BackgroundColor3 = Colors.Button
             sBtn.Text = "👤 " .. p.Name
             sBtn.TextColor3 = Colors.Text
             sBtn.Font = Enum.Font.Gotham
-            sBtn.TextSize = 11
+            sBtn.TextSize = 10
             sBtn.Parent = serverList
             sBtn.MouseButton1Click:Connect(function() 
                 tb.Text = p.Name 
             end)
-            sy += 40
+            sy += 33
         end
     end
-    serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 5)
+    serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 3)
 end)
 
 CreateButton("🎮", "ИГРЫ", function()
-    local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 280, 180)
+    local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 260, 160)
     
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 45)
-    btn.Position = UDim2.new(0.05, 0, 0, 50)
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = UDim2.new(0.05, 0, 0, 45)
     btn.BackgroundColor3 = Colors.Button
     btn.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
     btn.TextColor3 = Colors.Text
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 11
+    btn.TextSize = 10
     btn.Parent = frame
 end)
 
 CreateButton("⚙️", "НАСТРОЙКИ", function()
-    local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ КЛАВИШ", 320, 380)
+    local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ", 300, 340)
     
     local names = {
         HideGUI = "👁️ Скрыть", 
@@ -985,31 +975,31 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
         TPMouse = "🖱️ ТП мышь", 
         CopyCoords = "📋 Координаты", 
         ESP = "🔴 ESP",
-        AutoClicker = "🖱️ Автокликер",
+        AutoClicker = "🖱️ Кликер",
         AutoClickerSpeed = "⚡ Скорость кликера",
         FlySpeedWindow = "✈️ Скорость полёта"
     }
     
-    local y = 45
+    local y = 40
     for key, display in pairs(names) do
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(0.5, 0, 0, 35)
+        lbl.Size = UDim2.new(0.5, 0, 0, 28)
         lbl.Position = UDim2.new(0.05, 0, 0, y)
         lbl.BackgroundColor3 = Colors.Button
         lbl.Text = display
         lbl.TextColor3 = Colors.Text
         lbl.Font = Enum.Font.GothamBold
-        lbl.TextSize = 12
+        lbl.TextSize = 10
         lbl.Parent = frame
         
         local keyBtn = Instance.new("TextButton")
-        keyBtn.Size = UDim2.new(0.4, 0, 0, 35)
+        keyBtn.Size = UDim2.new(0.4, 0, 0, 28)
         keyBtn.Position = UDim2.new(0.55, 0, 0, y)
         keyBtn.BackgroundColor3 = Colors.Button
         keyBtn.Text = Keys[key].Name
         keyBtn.TextColor3 = Colors.Text
         keyBtn.Font = Enum.Font.GothamBold
-        keyBtn.TextSize = 11
+        keyBtn.TextSize = 9
         keyBtn.Parent = frame
         
         keyBtn.MouseButton1Click:Connect(function()
@@ -1025,7 +1015,7 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
             end)
         end)
         
-        y += 40
+        y += 33
     end
 end)
 
