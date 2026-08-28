@@ -1,4 +1,4 @@
--- Solaris GUI v11.8 (Aimbot Fixed)
+-- Solaris GUI v11.9 (Aimbot Completely Fixed)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -10,7 +10,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "11.8"
+local Version = "11.9"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -38,7 +38,6 @@ local AutoClickerSettings = {
 }
 
 local AimTarget = "Head"
-local AimKey = Enum.UserInputType.MouseButton2
 local IgnoredTeamColor = "None"
 local IsAiming = false
 
@@ -405,54 +404,60 @@ local function ToggleAutoClicker()
     end
 end
 
--- ИСПРАВЛЕННЫЙ АИМБОТ
-local function getClosestPlayerToMouse()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-
+-- ПРОСТОЙ И РАБОЧИЙ АИМБОТ
+local function findNearestTarget()
+    local nearestTarget = nil
+    local nearestDistance = math.huge
+    
+    local myCharacter = getCharacter()
+    if not myCharacter then return nil end
+    
+    local myRoot = myCharacter:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+    
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+            local character = player.Character
+            local humanoid = character:FindFirstChild("Humanoid")
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
             
             if humanoid and humanoid.Health > 0 and rootPart then
-                local currentTeamColor = player.Team and tostring(player.Team.TeamColor) or "None"
-                if currentTeamColor ~= IgnoredTeamColor then
-                    
-                    local partName = (AimTarget == "Head") and "Head" or "UpperTorso"
-                    if not player.Character:FindFirstChild(partName) then
-                        partName = "Torso"
+                -- Проверяем команду
+                local teamColor = player.Team and tostring(player.Team.TeamColor) or "None"
+                if teamColor ~= IgnoredTeamColor then
+                    -- Выбираем часть тела
+                    local targetPart = character:FindFirstChild(AimTarget)
+                    if not targetPart then
+                        targetPart = character:FindFirstChild("Head")
                     end
-                    if not player.Character:FindFirstChild(partName) then
-                        partName = "HumanoidRootPart"
+                    if not targetPart then
+                        targetPart = character:FindFirstChild("UpperTorso")
+                    end
+                    if not targetPart then
+                        targetPart = rootPart
                     end
                     
-                    local targetPart = player.Character:FindFirstChild(partName)
                     if targetPart then
-                        local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                        local distance = (myRoot.Position - rootPart.Position).Magnitude
                         
-                        if onScreen then
-                            local mousePos = UserInputService:GetMouseLocation()
-                            local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                            
-                            if distance < shortestDistance then
-                                closestPlayer = player
-                                shortestDistance = distance
-                            end
+                        if distance < nearestDistance then
+                            nearestDistance = distance
+                            nearestTarget = targetPart
                         end
                     end
                 end
             end
         end
     end
-    return closestPlayer
+    
+    return nearestTarget
 end
 
 local function ToggleAimbot()
     AimbotEnabled = not AimbotEnabled
     
     if AimbotEnabled then
-        print("Аимбот включён! Зажми ПКМ для наведения")
+        print("Аимбот включён! Зажми ПКМ")
     else
         print("Аимбот выключен!")
     end
@@ -994,7 +999,7 @@ CreateButton("🎮", "ИГРЫ", function()
     btn.Parent = frame
     
     btn.MouseButton1Click:Connect(function()
-        local tpFrame = CreateWindow("SurvivalWindow", "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ", 300, 300)
+        local tpFrame = CreateWindow("SurvivalWindow", "🏚️ ВЫЖИВАНИЕ", 300, 300)
         
         local tpLabel = Instance.new("TextLabel")
         tpLabel.Size = UDim2.new(0.9, 0, 0, 25)
@@ -1082,32 +1087,25 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
     end
 end)
 
--- ИСПРАВЛЕННАЯ ОБРАБОТКА АИМБОТА
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.UserInputType == AimKey then
+-- Обработка ПКМ для аимбота
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
         IsAiming = true
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == AimKey then
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
         IsAiming = false
     end
 end)
 
--- Основной цикл аимбота (исправленный)
+-- Цикл аимбота
 RunService.RenderStepped:Connect(function()
     if AimbotEnabled and IsAiming then
-        local targetPlayer = getClosestPlayerToMouse()
-        if targetPlayer and targetPlayer.Character then
-            local partName = (AimTarget == "Head") and "Head" or "UpperTorso"
-            if not targetPlayer.Character:FindFirstChild(partName) then partName = "Torso" end
-            if not targetPlayer.Character:FindFirstChild(partName) then partName = "HumanoidRootPart" end
-            
-            local targetPart = targetPlayer.Character:FindFirstChild(partName)
-            if targetPart then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
-            end
+        local targetPart = findNearestTarget()
+        if targetPart then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
         end
     end
 end)
@@ -1202,4 +1200,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
-print("Аимбот: B - вкл, ПКМ - наведение")
+print("Аимбот: B - вкл, ПКМ - наведение на цель")
