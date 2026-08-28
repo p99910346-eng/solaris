@@ -1,28 +1,25 @@
--- Solaris GUI v12.1 (All Fixed)
+-- Solaris GUI v12.2 (AutoClicker Fixed, No Aimbot)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local Camera = workspace.CurrentCamera
 
 local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "12.1"
+local Version = "12.2"
 
 local FlyEnabled = false
 local NoclipEnabled = false
 local ESPEnabled = false
 local AutoClickerEnabled = false
-local AimbotEnabled = false
 local FlyConnection = nil
 local NoclipConnection = nil
 local ESPConnection = nil
 local ScannerConnection = nil
 local AutoClickerConnection = nil
-local AimbotConnection = nil
 
 local KeyCooldown = {}
 
@@ -37,11 +34,6 @@ local AutoClickerSettings = {
     MinSpeed = 1,
     MaxSpeed = 50,
 }
-
-local AimTarget = "Head"
-local AimKey = Enum.UserInputType.MouseButton2
-local IgnoredTeamColor = "None"
-local IsAiming = false
 
 local FarmPoints = {
     {name = "Каналы", pos = Vector3.new(-244, -23, -1349)},
@@ -71,7 +63,6 @@ local Keys = {
     AutoClicker = Enum.KeyCode.LeftBracket,
     AutoClickerSpeed = Enum.KeyCode.Equals,
     FlySpeedWindow = Enum.KeyCode.KeypadPeriod,
-    Aimbot = Enum.KeyCode.B,
 }
 
 local Colors = {
@@ -94,6 +85,25 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local OpenWindows = {}
+
+-- Функция проверки: находится ли мышь над GUI
+local function isMouseOverGUI()
+    local mousePos = UserInputService:GetMouseLocation()
+    
+    for _, child in ipairs(ScreenGui:GetChildren()) do
+        if child:IsA("Frame") and child.Visible then
+            local guiPos = child.AbsolutePosition
+            local guiSize = child.AbsoluteSize
+            
+            if mousePos.X >= guiPos.X and mousePos.X <= guiPos.X + guiSize.X and
+               mousePos.Y >= guiPos.Y and mousePos.Y <= guiPos.Y + guiSize.Y then
+                return true
+            end
+        end
+    end
+    
+    return false
+end
 
 local function MakeDraggable(frame, titleBar)
     local isDragging = false
@@ -214,7 +224,6 @@ CloseButton.MouseButton1Click:Connect(function()
     if ESPConnection then ESPConnection:Disconnect() end
     if ScannerConnection then ScannerConnection:Disconnect() end
     if AutoClickerConnection then AutoClickerConnection:Disconnect() end
-    if AimbotConnection then AimbotConnection:Disconnect() end
     ScreenGui:Destroy()
 end)
 
@@ -367,7 +376,6 @@ local function ToggleESP()
         for _, player in ipairs(Players:GetPlayers()) do
             applyESP(player)
         end
-        Players.PlayerAdded:Connect(applyESP)
         print("ESP включён!")
     else
         for _, player in ipairs(Players:GetPlayers()) do
@@ -380,6 +388,7 @@ local function ToggleESP()
     end
 end
 
+-- ИСПРАВЛЕННЫЙ АВТОКЛИКЕР (не кликает по GUI)
 local function ToggleAutoClicker()
     AutoClickerEnabled = not AutoClickerEnabled
     
@@ -392,9 +401,12 @@ local function ToggleAutoClicker()
             local delay = 1 / AutoClickerSettings.Speed
             
             if lastClick >= delay then
-                lastClick = 0
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, nil, 0)
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, nil, 0)
+                -- Проверяем что мышь НЕ над GUI
+                if not isMouseOverGUI() then
+                    lastClick = 0
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, nil, 0)
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, nil, 0)
+                end
             end
         end)
         
@@ -405,59 +417,6 @@ local function ToggleAutoClicker()
             AutoClickerConnection = nil 
         end
         print("Автокликер выключен!")
-    end
-end
-
-local function getClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
-            
-            if humanoid and humanoid.Health > 0 and rootPart then
-                local currentTeamColor = player.Team and tostring(player.Team.TeamColor) or "None"
-                if currentTeamColor ~= IgnoredTeamColor then
-                    
-                    local partName = (AimTarget == "Head") and "Head" or "UpperTorso"
-                    if not player.Character:FindFirstChild(partName) then
-                        partName = "Torso"
-                    end
-                    if not player.Character:FindFirstChild(partName) then
-                        partName = "HumanoidRootPart"
-                    end
-                    
-                    local targetPart = player.Character:FindFirstChild(partName)
-                    if targetPart then
-                        local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-                        
-                        if onScreen then
-                            local mousePos = UserInputService:GetMouseLocation()
-                            local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                            
-                            if distance < shortestDistance then
-                                closestPlayer = player
-                                shortestDistance = distance
-                            end
-                        end
-                    end
-                    
-                end
-            end
-        end
-    end
-    return closestPlayer
-end
-
-local function ToggleAimbot()
-    AimbotEnabled = not AimbotEnabled
-    
-    if AimbotEnabled then
-        print("Аимбот включён! Зажми ПКМ")
-    else
-        print("Аимбот выключен!")
     end
 end
 
@@ -1031,7 +990,7 @@ CreateButton("🎮", "ИГРЫ", function()
 end)
 
 CreateButton("⚙️", "НАСТРОЙКИ", function()
-    local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ", 300, 370)
+    local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ", 300, 340)
     
     local names = {
         HideGUI = "👁️ Скрыть", 
@@ -1042,8 +1001,7 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
         ESP = "🔴 ESP",
         AutoClicker = "🖱️ Кликер",
         AutoClickerSpeed = "⚡ Скорость кликера",
-        FlySpeedWindow = "✈️ Скорость полёта",
-        Aimbot = "🎯 Аимбот"
+        FlySpeedWindow = "✈️ Скорость полёта"
     }
     
     local y = 40
@@ -1085,15 +1043,8 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
     end
 end)
 
--- ЕДИНЫЙ ОБРАБОТЧИК ВВОДА (исправлено дублирование)
+-- Единый обработчик ввода
 UserInputService.InputBegan:Connect(function(input, gp)
-    -- Обработка ПКМ для аимбота
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        IsAiming = true
-        return
-    end
-    
-    -- Обработка клавиатуры
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
     
     if KeyCooldown[input.KeyCode] and tick() - KeyCooldown[input.KeyCode] < 0.3 then
@@ -1119,7 +1070,6 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode == Keys.AutoClicker then ToggleAutoClicker() end
     if input.KeyCode == Keys.AutoClickerSpeed then OpenAutoClickerSpeedWindow() end
     if input.KeyCode == Keys.FlySpeedWindow then OpenFlySpeedWindow() end
-    if input.KeyCode == Keys.Aimbot then ToggleAimbot() end
     
     if input.KeyCode == Keys.TPMouse then
         local char = getCharacter()
@@ -1172,29 +1122,6 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        IsAiming = false
-    end
-end)
-
--- Цикл аимбота
-RunService.RenderStepped:Connect(function()
-    if AimbotEnabled and IsAiming then
-        local targetPlayer = getClosestPlayer()
-        if targetPlayer and targetPlayer.Character then
-            local partName = (AimTarget == "Head") and "Head" or "UpperTorso"
-            if not targetPlayer.Character:FindFirstChild(partName) then partName = "Torso" end
-            if not targetPlayer.Character:FindFirstChild(partName) then partName = "HumanoidRootPart" end
-            
-            local targetPart = targetPlayer.Character:FindFirstChild(partName)
-            if targetPart then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
-            end
-        end
-    end
-end)
-
 LocalPlayer.CharacterAdded:Connect(function(char)
     if SpawnPoint then
         wait(0.5)
@@ -1206,6 +1133,5 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
-print("Все системы работают корректно!")
-print("Аимбот: B - вкл, ПКМ - наведение")
-print("ESP: X - вкл/выкл")
+print("Автокликер: [ - вкл/выкл, = - скорость")
+print("Автокликер не кликает по GUI!")
