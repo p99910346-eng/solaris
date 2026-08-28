@@ -1,4 +1,4 @@
--- Solaris GUI v10.8 (Fixed Button Sizes)
+-- Solaris GUI v10.9 (No Games)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "10.8"
+local Version = "10.9"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -158,7 +158,7 @@ local function CreateWindow(windowName, title, width, height)
 end
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 260, 0, 290)
+MainFrame.Size = UDim2.new(0, 260, 0, 250)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
@@ -949,20 +949,6 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
         end
     end
     serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 3)
-end)
-
-CreateButton("🎮", "ИГРЫ", function()
-    local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 260, 160)
-    
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.Position = UDim2.new(0.05, 0, 0, 45)
-    btn.BackgroundColor3 = Colors.Button
-    btn.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
-    btn.TextColor3 = Colors.Text
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 10
-    btn.Parent = frame
 end)
 
 CreateButton("⚙️", "НАСТРОЙКИ", function()
