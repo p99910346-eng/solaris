@@ -1,4 +1,4 @@
--- Solaris GUI v12.2 (AutoClicker Fixed, No Aimbot)
+-- Solaris GUI v12.3 (Minus Key Opens Speed Menu)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "12.2"
+local Version = "12.3"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -62,7 +62,7 @@ local Keys = {
     ESP = Enum.KeyCode.X,
     AutoClicker = Enum.KeyCode.LeftBracket,
     AutoClickerSpeed = Enum.KeyCode.Equals,
-    FlySpeedWindow = Enum.KeyCode.KeypadPeriod,
+    SpeedMenu = Enum.KeyCode.Minus, -- Клавиша - открывает меню скорости
 }
 
 local Colors = {
@@ -86,7 +86,6 @@ ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local OpenWindows = {}
 
--- Функция проверки: находится ли мышь над GUI
 local function isMouseOverGUI()
     local mousePos = UserInputService:GetMouseLocation()
     
@@ -388,7 +387,6 @@ local function ToggleESP()
     end
 end
 
--- ИСПРАВЛЕННЫЙ АВТОКЛИКЕР (не кликает по GUI)
 local function ToggleAutoClicker()
     AutoClickerEnabled = not AutoClickerEnabled
     
@@ -401,7 +399,6 @@ local function ToggleAutoClicker()
             local delay = 1 / AutoClickerSettings.Speed
             
             if lastClick >= delay then
-                -- Проверяем что мышь НЕ над GUI
                 if not isMouseOverGUI() then
                     lastClick = 0
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, nil, 0)
@@ -420,86 +417,87 @@ local function ToggleAutoClicker()
     end
 end
 
-local function OpenFlySpeedWindow()
-    local frame = CreateWindow("FlySpeedWindow", "✈️ СКОРОСТЬ ПОЛЁТА", 280, 250)
+-- МЕНЮ СКОРОСТИ (открывается по клавише -)
+local function OpenSpeedMenu()
+    local frame = CreateWindow("SpeedMenu", "⚡ СКОРОСТЬ", 300, 250)
     
-    local speedLabel = Instance.new("TextLabel")
-    speedLabel.Size = UDim2.new(0.9, 0, 0, 35)
-    speedLabel.Position = UDim2.new(0.05, 0, 0, 40)
-    speedLabel.BackgroundColor3 = Colors.Button
-    speedLabel.Text = "Скорость: " .. FlySettings.Speed
-    speedLabel.TextColor3 = Colors.Text
-    speedLabel.Font = Enum.Font.GothamBold
-    speedLabel.TextSize = 12
-    speedLabel.Parent = frame
+    -- Заголовок
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(0.9, 0, 0, 35)
+    titleLabel.Position = UDim2.new(0.05, 0, 0, 40)
+    titleLabel.BackgroundColor3 = Colors.TitleBar
+    titleLabel.Text = "Текущая скорость: " .. FlySettings.Speed
+    titleLabel.TextColor3 = Colors.Text
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 14
+    titleLabel.Parent = frame
     
+    -- Кнопка уменьшить
+    local decreaseBtn = Instance.new("TextButton")
+    decreaseBtn.Size = UDim2.new(0.42, 0, 0, 50)
+    decreaseBtn.Position = UDim2.new(0.05, 0, 0, 85)
+    decreaseBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+    decreaseBtn.Text = "➖ МЕДЛЕННЕЕ"
+    decreaseBtn.TextColor3 = Colors.Text
+    decreaseBtn.Font = Enum.Font.GothamBold
+    decreaseBtn.TextSize = 14
+    decreaseBtn.Parent = frame
+    
+    decreaseBtn.MouseButton1Click:Connect(function()
+        FlySettings.Speed = math.clamp(FlySettings.Speed - 25, FlySettings.MinSpeed, FlySettings.MaxSpeed)
+        titleLabel.Text = "Текущая скорость: " .. FlySettings.Speed
+        print("Скорость: " .. FlySettings.Speed)
+    end)
+    
+    -- Кнопка увеличить
+    local increaseBtn = Instance.new("TextButton")
+    increaseBtn.Size = UDim2.new(0.42, 0, 0, 50)
+    increaseBtn.Position = UDim2.new(0.53, 0, 0, 85)
+    increaseBtn.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
+    increaseBtn.Text = "➕ БЫСТРЕЕ"
+    increaseBtn.TextColor3 = Colors.Text
+    increaseBtn.Font = Enum.Font.GothamBold
+    increaseBtn.TextSize = 14
+    increaseBtn.Parent = frame
+    
+    increaseBtn.MouseButton1Click:Connect(function()
+        FlySettings.Speed = math.clamp(FlySettings.Speed + 25, FlySettings.MinSpeed, FlySettings.MaxSpeed)
+        titleLabel.Text = "Текущая скорость: " .. FlySettings.Speed
+        print("Скорость: " .. FlySettings.Speed)
+    end)
+    
+    -- Поле ввода
     local speedInput = Instance.new("TextBox")
-    speedInput.Size = UDim2.new(0.9, 0, 0, 30)
-    speedInput.Position = UDim2.new(0.05, 0, 0, 80)
+    speedInput.Size = UDim2.new(0.9, 0, 0, 35)
+    speedInput.Position = UDim2.new(0.05, 0, 0, 145)
     speedInput.BackgroundColor3 = Colors.Input
-    speedInput.PlaceholderText = "10-500"
+    speedInput.PlaceholderText = "Введи скорость (10-500)"
     speedInput.Text = tostring(FlySettings.Speed)
     speedInput.TextColor3 = Colors.Text
     speedInput.Font = Enum.Font.Gotham
-    speedInput.TextSize = 11
+    speedInput.TextSize = 12
     speedInput.Parent = frame
     
+    -- Кнопка применить
     local applyBtn = Instance.new("TextButton")
-    applyBtn.Size = UDim2.new(0.9, 0, 0, 30)
-    applyBtn.Position = UDim2.new(0.05, 0, 0, 115)
-    applyBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+    applyBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    applyBtn.Position = UDim2.new(0.05, 0, 0, 185)
+    applyBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
     applyBtn.Text = "✅ ПРИМЕНИТЬ"
     applyBtn.TextColor3 = Colors.Text
     applyBtn.Font = Enum.Font.GothamBold
-    applyBtn.TextSize = 11
+    applyBtn.TextSize = 12
     applyBtn.Parent = frame
     
     applyBtn.MouseButton1Click:Connect(function()
         local newSpeed = tonumber(speedInput.Text)
         if newSpeed then
             FlySettings.Speed = math.clamp(newSpeed, FlySettings.MinSpeed, FlySettings.MaxSpeed)
-            speedLabel.Text = "Скорость: " .. FlySettings.Speed
+            titleLabel.Text = "Текущая скорость: " .. FlySettings.Speed
             speedInput.Text = tostring(FlySettings.Speed)
-            print("Скорость полёта: " .. FlySettings.Speed)
+            print("Скорость: " .. FlySettings.Speed)
         end
     end)
-    
-    local presetsLabel = Instance.new("TextLabel")
-    presetsLabel.Size = UDim2.new(0.9, 0, 0, 20)
-    presetsLabel.Position = UDim2.new(0.05, 0, 0, 150)
-    presetsLabel.BackgroundColor3 = Colors.TitleBar
-    presetsLabel.Text = "ПРЕСЕТЫ:"
-    presetsLabel.TextColor3 = Colors.Text
-    presetsLabel.Font = Enum.Font.GothamBold
-    presetsLabel.TextSize = 9
-    presetsLabel.Parent = frame
-    
-    local presets = {
-        {name = "25", speed = 25},
-        {name = "50", speed = 50},
-        {name = "100", speed = 100},
-        {name = "200", speed = 200},
-        {name = "500", speed = 500}
-    }
-    
-    for i, preset in ipairs(presets) do
-        local presetBtn = Instance.new("TextButton")
-        presetBtn.Size = UDim2.new(0.17, 0, 0, 25)
-        presetBtn.Position = UDim2.new(0.05 + ((i - 1) % 5) * 0.18, 0, 0, 175)
-        presetBtn.BackgroundColor3 = Colors.Button
-        presetBtn.Text = preset.name
-        presetBtn.TextColor3 = Colors.Text
-        presetBtn.Font = Enum.Font.GothamBold
-        presetBtn.TextSize = 9
-        presetBtn.Parent = frame
-        
-        presetBtn.MouseButton1Click:Connect(function()
-            FlySettings.Speed = preset.speed
-            speedLabel.Text = "Скорость: " .. FlySettings.Speed
-            speedInput.Text = tostring(FlySettings.Speed)
-            print("Скорость полёта: " .. FlySettings.Speed)
-        end)
-    end
 end
 
 local function OpenAutoClickerSpeedWindow()
@@ -1001,7 +999,7 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
         ESP = "🔴 ESP",
         AutoClicker = "🖱️ Кликер",
         AutoClickerSpeed = "⚡ Скорость кликера",
-        FlySpeedWindow = "✈️ Скорость полёта"
+        SpeedMenu = "⚡ Меню скорости"
     }
     
     local y = 40
@@ -1069,7 +1067,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode == Keys.ESP then ToggleESP() end
     if input.KeyCode == Keys.AutoClicker then ToggleAutoClicker() end
     if input.KeyCode == Keys.AutoClickerSpeed then OpenAutoClickerSpeedWindow() end
-    if input.KeyCode == Keys.FlySpeedWindow then OpenFlySpeedWindow() end
+    if input.KeyCode == Keys.SpeedMenu then OpenSpeedMenu() end
     
     if input.KeyCode == Keys.TPMouse then
         local char = getCharacter()
@@ -1133,5 +1131,4 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
-print("Автокликер: [ - вкл/выкл, = - скорость")
-print("Автокликер не кликает по GUI!")
+print("Клавиша '-' открывает меню скорости!")
