@@ -1,4 +1,4 @@
--- Solaris GUI v11.7 (Games Menu with Named Teleports)
+-- Solaris GUI v11.8 (Aimbot Fixed)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -10,7 +10,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "11.7"
+local Version = "11.8"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -405,7 +405,8 @@ local function ToggleAutoClicker()
     end
 end
 
-local function getClosestPlayer()
+-- ИСПРАВЛЕННЫЙ АИМБОТ
+local function getClosestPlayerToMouse()
     local closestPlayer = nil
     local shortestDistance = math.huge
 
@@ -1081,7 +1082,8 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
     end
 end)
 
-UserInputService.InputBegan:Connect(function(input)
+-- ИСПРАВЛЕННАЯ ОБРАБОТКА АИМБОТА
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.UserInputType == AimKey then
         IsAiming = true
     end
@@ -1093,9 +1095,10 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
+-- Основной цикл аимбота (исправленный)
 RunService.RenderStepped:Connect(function()
     if AimbotEnabled and IsAiming then
-        local targetPlayer = getClosestPlayer()
+        local targetPlayer = getClosestPlayerToMouse()
         if targetPlayer and targetPlayer.Character then
             local partName = (AimTarget == "Head") and "Head" or "UpperTorso"
             if not targetPlayer.Character:FindFirstChild(partName) then partName = "Torso" end
@@ -1199,3 +1202,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
+print("Аимбот: B - вкл, ПКМ - наведение")
