@@ -1,0 +1,646 @@
+-- Games Script (телепорты и фармы)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local CoreGui = game:GetService("CoreGui")
+
+local Colors = {
+    Frame = Color3.fromRGB(255, 255, 255),
+    TitleBar = Color3.fromRGB(230, 230, 240),
+    Button = Color3.fromRGB(240, 240, 245),
+    Input = Color3.fromRGB(235, 235, 240),
+    ScrollBg = Color3.fromRGB(245, 245, 248),
+    Text = Color3.fromRGB(30, 30, 40)
+}
+
+local function getCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+local function SmoothTP(targetCFrame)
+    local char = getCharacter()
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = targetCFrame
+    end
+end
+
+local function MakeDraggable(frame, titleBar)
+    local isDragging = false
+    local dragStart = nil
+    local frameStart = nil
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = true
+            dragStart = input.Position
+            frameStart = frame.Position
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement and dragStart and frameStart then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                frameStart.X.Scale, 
+                frameStart.X.Offset + delta.X, 
+                frameStart.Y.Scale, 
+                frameStart.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = false
+        end
+    end)
+end
+
+-- ТЕЛЕПОРТЫ
+local FarmPoints = {
+    {name = "Каналы", pos = Vector3.new(-244, -23, -1349)},
+    {name = "Пляж", pos = Vector3.new(-157, 4, -154)},
+    {name = "Завод", pos = Vector3.new(-276, 4, 215)},
+    {name = "Чинила", pos = Vector3.new(-270, 3, 44)},
+    {name = "Продажа", pos = Vector3.new(-175, 4, 45)},
+    {name = "Ресторан", pos = Vector3.new(-161, 5, 5)}
+}
+
+-- Функция создания окна телепортов
+local function OpenTeleports()
+    if CoreGui:FindFirstChild("TeleportsGUI") then
+        CoreGui.TeleportsGUI:Destroy()
+    end
+    
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "TeleportsGUI"
+    ScreenGui.Parent = CoreGui
+    
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 220, 0, 280)
+    Frame.Position = UDim2.new(0.7, 0, 0.3, 0)
+    Frame.BackgroundColor3 = Colors.Frame
+    Frame.BorderSizePixel = 0
+    Frame.Parent = ScreenGui
+    
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 10)
+    UICorner.Parent = Frame
+    
+    local TitleBar = Instance.new("TextLabel")
+    TitleBar.Size = UDim2.new(1, 0, 0, 30)
+    TitleBar.BackgroundColor3 = Colors.TitleBar
+    TitleBar.Text = "📍 ТЕЛЕПОРТЫ"
+    TitleBar.TextColor3 = Colors.Text
+    TitleBar.Font = Enum.Font.GothamBold
+    TitleBar.TextSize = 11
+    TitleBar.Parent = Frame
+    
+    MakeDraggable(Frame, TitleBar)
+    
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 22, 0, 22)
+    CloseButton.Position = UDim2.new(1, -27, 0, 4)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+    CloseButton.Text = "✕"
+    CloseButton.TextColor3 = Colors.Text
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 10
+    CloseButton.Parent = TitleBar
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+    
+    local tpLabel = Instance.new("TextLabel")
+    tpLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    tpLabel.Position = UDim2.new(0.05, 0, 0, 35)
+    tpLabel.BackgroundColor3 = Colors.TitleBar
+    tpLabel.Text = "📍 ТОЧКИ:"
+    tpLabel.TextColor3 = Colors.Text
+    tpLabel.Font = Enum.Font.GothamBold
+    tpLabel.TextSize = 10
+    tpLabel.Parent = Frame
+    
+    local tpY = 60
+    for i, point in ipairs(FarmPoints) do
+        local tpBtn = Instance.new("TextButton")
+        tpBtn.Size = UDim2.new(0.9, 0, 0, 30)
+        tpBtn.Position = UDim2.new(0.05, 0, 0, tpY)
+        tpBtn.BackgroundColor3 = Colors.Button
+        tpBtn.Text = "📍 " .. point.name
+        tpBtn.TextColor3 = Colors.Text
+        tpBtn.Font = Enum.Font.Gotham
+        tpBtn.TextSize = 10
+        tpBtn.Parent = Frame
+        
+        tpBtn.MouseButton1Click:Connect(function()
+            SmoothTP(CFrame.new(point.pos))
+        end)
+        
+        tpY += 35
+    end
+end
+
+-- ФАРМ ЗАВОДА
+local function OpenFarmGUI()
+    if CoreGui:FindFirstChild("LoopTwoPointsGui") then
+        CoreGui.LoopTwoPointsGui:Destroy()
+    end
+    
+    local Point1 = Vector3.new(-255, 4, 208)
+    local Point2 = Vector3.new(-281, 6, 242)
+    local isFarming = false
+    local farmSpeed = 0.6
+    
+    local FarmScreenGui = Instance.new("ScreenGui")
+    FarmScreenGui.Name = "LoopTwoPointsGui"
+    FarmScreenGui.Parent = CoreGui
+    
+    local FarmFrame = Instance.new("Frame")
+    FarmFrame.BackgroundColor3 = Colors.Frame
+    FarmFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
+    FarmFrame.Size = UDim2.new(0, 220, 0, 170)
+    FarmFrame.Active = true
+    FarmFrame.Parent = FarmScreenGui
+    
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 10)
+    UICorner.Parent = FarmFrame
+    
+    local TopBar = Instance.new("TextLabel")
+    TopBar.BackgroundColor3 = Colors.TitleBar
+    TopBar.Size = UDim2.new(1, 0, 0, 30)
+    TopBar.Text = "🤖 Фарм завод"
+    TopBar.TextColor3 = Colors.Text
+    TopBar.Font = Enum.Font.GothamBold
+    TopBar.TextSize = 11
+    TopBar.Parent = FarmFrame
+    
+    MakeDraggable(FarmFrame, TopBar)
+    
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 22, 0, 22)
+    CloseButton.Position = UDim2.new(1, -27, 0, 4)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+    CloseButton.Text = "✕"
+    CloseButton.TextColor3 = Colors.Text
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 10
+    CloseButton.Parent = TopBar
+    
+    local SpeedLabel = Instance.new("TextLabel")
+    SpeedLabel.BackgroundTransparency = 1
+    SpeedLabel.Position = UDim2.new(0.05, 0, 0.22, 0)
+    SpeedLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    SpeedLabel.Font = Enum.Font.Gotham
+    SpeedLabel.Text = "Скорость (сек): " .. farmSpeed
+    SpeedLabel.TextColor3 = Colors.Text
+    SpeedLabel.TextSize = 10
+    SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SpeedLabel.Parent = FarmFrame
+    
+    local SpeedInput = Instance.new("TextBox")
+    SpeedInput.BackgroundColor3 = Colors.Input
+    SpeedInput.Position = UDim2.new(0.05, 0, 0.34, 0)
+    SpeedInput.Size = UDim2.new(0.55, 0, 0, 25)
+    SpeedInput.Font = Enum.Font.GothamBold
+    SpeedInput.Text = tostring(farmSpeed)
+    SpeedInput.TextColor3 = Colors.Text
+    SpeedInput.TextSize = 10
+    SpeedInput.ClearTextOnFocus = false
+    SpeedInput.Parent = FarmFrame
+    
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.CornerRadius = UDim.new(0, 4)
+    InputCorner.Parent = SpeedInput
+    
+    local SpeedApplyBtn = Instance.new("TextButton")
+    SpeedApplyBtn.BackgroundColor3 = Colors.Button
+    SpeedApplyBtn.Position = UDim2.new(0.65, 0, 0.34, 0)
+    SpeedApplyBtn.Size = UDim2.new(0.3, 0, 0, 25)
+    SpeedApplyBtn.Font = Enum.Font.GothamBold
+    SpeedApplyBtn.Text = "✅"
+    SpeedApplyBtn.TextColor3 = Colors.Text
+    SpeedApplyBtn.TextSize = 10
+    SpeedApplyBtn.Parent = FarmFrame
+    
+    local ApplyCorner = Instance.new("UICorner")
+    ApplyCorner.CornerRadius = UDim.new(0, 4)
+    ApplyCorner.Parent = SpeedApplyBtn
+    
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+    ToggleButton.Position = UDim2.new(0.05, 0, 0.58, 0)
+    ToggleButton.Size = UDim2.new(0.9, 0, 0, 40)
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.Text = "Цикл: ВЫКЛ"
+    ToggleButton.TextColor3 = Colors.Text
+    ToggleButton.TextSize = 12
+    ToggleButton.Parent = FarmFrame
+    
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.CornerRadius = UDim.new(0, 6)
+    ButtonCorner.Parent = ToggleButton
+    
+    SpeedApplyBtn.MouseButton1Click:Connect(function()
+        local num = tonumber(SpeedInput.Text)
+        if num and num >= 0.1 then
+            farmSpeed = num
+            SpeedLabel.Text = "Скорость (сек): " .. farmSpeed
+        end
+    end)
+    
+    SpeedInput.FocusLost:Connect(function()
+        local num = tonumber(SpeedInput.Text)
+        if num and num >= 0.1 then
+            farmSpeed = num
+            SpeedLabel.Text = "Скорость (сек): " .. farmSpeed
+        else
+            SpeedInput.Text = tostring(farmSpeed)
+        end
+    end)
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        isFarming = false
+        FarmScreenGui:Destroy()
+    end)
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.15)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    task.spawn(function()
+        while true do
+            task.wait(0.1)
+            if not FarmScreenGui or not FarmScreenGui.Parent then break end
+            
+            if isFarming then
+                local char = getCharacter()
+                local rootPart = char:WaitForChild("HumanoidRootPart")
+                
+                local lookAt1 = CFrame.lookAt(Point1, Point1 + Vector3.new(0, 0, -1))
+                rootPart.CFrame = lookAt1
+                task.wait(farmSpeed)
+                
+                if isFarming then
+                    simulateKeyPressE()
+                    task.wait(farmSpeed)
+                end
+                
+                local lookAt2 = CFrame.lookAt(Point2, Point2 + Vector3.new(0, 0, -1))
+                rootPart.CFrame = lookAt2
+                task.wait(farmSpeed)
+                
+                if isFarming then
+                    simulateKeyPressE()
+                    task.wait(farmSpeed)
+                end
+            end
+        end
+    end)
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        isFarming = not isFarming
+        if isFarming then
+            ToggleButton.Text = "Цикл: ВКЛ"
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
+        else
+            ToggleButton.Text = "Цикл: ВЫКЛ"
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+        end
+    end)
+end
+
+-- АВТО ГОТОВКА
+local function OpenAutoCookGUI()
+    if CoreGui:FindFirstChild("DraggableMicrowaveFarm") then
+        CoreGui.DraggableMicrowaveFarm:Destroy()
+    end
+    
+    local microwavePositions = {
+        {name = "Микроволновка 1", pos = Vector3.new(-181, 5, 18)},
+        {name = "Микроволновка 2", pos = Vector3.new(-162, 5, -9)},
+        {name = "Микроволновка 3", pos = Vector3.new(-186, 5, -9)},
+        {name = "Микроволновка 4", pos = Vector3.new(-185, 5, 8)}
+    }
+    
+    local selectedMicrowave = microwavePositions[1]
+    local cookingTime = 15
+    local isFarming = false
+    local firstRun = true
+    
+    local CookScreenGui = Instance.new("ScreenGui")
+    CookScreenGui.Name = "DraggableMicrowaveFarm"
+    CookScreenGui.Parent = CoreGui
+    
+    local CookFrame = Instance.new("Frame")
+    CookFrame.BackgroundColor3 = Colors.Frame
+    CookFrame.Position = UDim2.new(0.05, 0, 0.35, 0)
+    CookFrame.Size = UDim2.new(0, 220, 0, 210)
+    CookFrame.Active = true
+    CookFrame.Parent = CookScreenGui
+    
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 10)
+    UICorner.Parent = CookFrame
+    
+    local TopBar = Instance.new("TextLabel")
+    TopBar.BackgroundColor3 = Colors.TitleBar
+    TopBar.Size = UDim2.new(1, 0, 0, 30)
+    TopBar.Text = "🍳 Авто готовка"
+    TopBar.TextColor3 = Colors.Text
+    TopBar.Font = Enum.Font.GothamBold
+    TopBar.TextSize = 11
+    TopBar.Parent = CookFrame
+    
+    MakeDraggable(CookFrame, TopBar)
+    
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 22, 0, 22)
+    CloseButton.Position = UDim2.new(1, -27, 0, 4)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+    CloseButton.Text = "✕"
+    CloseButton.TextColor3 = Colors.Text
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 10
+    CloseButton.Parent = TopBar
+    
+    local MicrowaveLabel = Instance.new("TextLabel")
+    MicrowaveLabel.BackgroundTransparency = 1
+    MicrowaveLabel.Position = UDim2.new(0.05, 0, 0.18, 0)
+    MicrowaveLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    MicrowaveLabel.Font = Enum.Font.Gotham
+    MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
+    MicrowaveLabel.TextColor3 = Colors.Text
+    MicrowaveLabel.TextSize = 10
+    MicrowaveLabel.TextXAlignment = Enum.TextXAlignment.Left
+    MicrowaveLabel.Parent = CookFrame
+    
+    local MicrowaveSelect = Instance.new("TextButton")
+    MicrowaveSelect.BackgroundColor3 = Colors.Button
+    MicrowaveSelect.Position = UDim2.new(0.05, 0, 0.28, 0)
+    MicrowaveSelect.Size = UDim2.new(0.9, 0, 0, 28)
+    MicrowaveSelect.Font = Enum.Font.GothamBold
+    MicrowaveSelect.Text = "🔄 СМЕНИТЬ"
+    MicrowaveSelect.TextColor3 = Colors.Text
+    MicrowaveSelect.TextSize = 10
+    MicrowaveSelect.Parent = CookFrame
+    
+    local SelectCorner = Instance.new("UICorner")
+    SelectCorner.CornerRadius = UDim.new(0, 6)
+    SelectCorner.Parent = MicrowaveSelect
+    
+    local TimeLabel = Instance.new("TextLabel")
+    TimeLabel.BackgroundTransparency = 1
+    TimeLabel.Position = UDim2.new(0.05, 0, 0.45, 0)
+    TimeLabel.Size = UDim2.new(0, 100, 0, 25)
+    TimeLabel.Font = Enum.Font.Gotham
+    TimeLabel.Text = "Время готовки:"
+    TimeLabel.TextColor3 = Colors.Text
+    TimeLabel.TextSize = 11
+    TimeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TimeLabel.Parent = CookFrame
+    
+    local TimeInput = Instance.new("TextBox")
+    TimeInput.BackgroundColor3 = Colors.Input
+    TimeInput.Position = UDim2.new(0.6, 0, 0.45, 0)
+    TimeInput.Size = UDim2.new(0, 70, 0, 25)
+    TimeInput.Font = Enum.Font.GothamBold
+    TimeInput.Text = tostring(cookingTime)
+    TimeInput.TextColor3 = Colors.Text
+    TimeInput.TextSize = 11
+    TimeInput.ClearTextOnFocus = false
+    TimeInput.Parent = CookFrame
+    
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.CornerRadius = UDim.new(0, 4)
+    InputCorner.Parent = TimeInput
+    
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+    ToggleButton.Position = UDim2.new(0.05, 0, 0.62, 0)
+    ToggleButton.Size = UDim2.new(0.9, 0, 0, 40)
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.Text = "Авто-готовка: ВЫКЛ"
+    ToggleButton.TextColor3 = Colors.Text
+    ToggleButton.TextSize = 11
+    ToggleButton.Parent = CookFrame
+    
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.CornerRadius = UDim.new(0, 6)
+    ButtonCorner.Parent = ToggleButton
+    
+    local InfoLabel = Instance.new("TextLabel")
+    InfoLabel.BackgroundTransparency = 1
+    InfoLabel.Position = UDim2.new(0.05, 0, 0.85, 0)
+    InfoLabel.Size = UDim2.new(0.9, 0, 0, 25)
+    InfoLabel.Font = Enum.Font.Gotham
+    InfoLabel.Text = "Статус: Ожидание"
+    InfoLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
+    InfoLabel.TextSize = 9
+    InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
+    InfoLabel.Parent = CookFrame
+    
+    local currentMicrowaveIndex = 1
+    MicrowaveSelect.MouseButton1Click:Connect(function()
+        currentMicrowaveIndex = currentMicrowaveIndex + 1
+        if currentMicrowaveIndex > #microwavePositions then
+            currentMicrowaveIndex = 1
+        end
+        selectedMicrowave = microwavePositions[currentMicrowaveIndex]
+        MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
+    end)
+    
+    TimeInput.FocusLost:Connect(function()
+        local num = tonumber(TimeInput.Text)
+        if num and num >= 0 then cookingTime = num else TimeInput.Text = tostring(cookingTime) end
+    end)
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        isFarming = false
+        CookScreenGui:Destroy()
+    end)
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.1)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    local function preciseMouseClick(x, y)
+        VirtualInputManager:SendMouseMoveEvent(x, y, game)
+        task.wait(0.12)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    end
+    
+    local function getStraightLook(cframe)
+        local x, y, z = cframe:ToEulerAnglesYXZ()
+        return CFrame.new(cframe.Position) * CFrame.fromEulerAnglesYXZ(0, y, 0)
+    end
+    
+    task.spawn(function()
+        while true do
+            task.wait(0.3)
+            if not CookScreenGui or not CookScreenGui.Parent then break end
+            
+            if isFarming then
+                local char = getCharacter()
+                local rootPart = char:WaitForChild("HumanoidRootPart")
+                
+                local currentSavedPos = getStraightLook(rootPart.CFrame)
+                local targetCFrame = getStraightLook(CFrame.new(selectedMicrowave.pos))
+                
+                if firstRun then
+                    InfoLabel.Text = "Статус: Запуск..."
+                    rootPart.CFrame = targetCFrame
+                    task.wait(0.5)
+                    
+                    simulateKeyPressE()
+                    task.wait(0.5)
+                    
+                    preciseMouseClick(1420, 533)
+                    task.wait(1.0)
+                    
+                    rootPart.CFrame = currentSavedPos * CFrame.new(0, 4, 0)
+                    firstRun = false
+                end
+                
+                for i = cookingTime, 1, -1 do
+                    if not isFarming then break end
+                    ToggleButton.Text = "Печётся: " .. i .. "с"
+                    InfoLabel.Text = "Статус: Выпекание " .. i .. "/" .. cookingTime
+                    task.wait(1)
+                end
+                
+                if isFarming and not firstRun then
+                    local loopSavedPos = getStraightLook(rootPart.CFrame)
+                    
+                    InfoLabel.Text = "Статус: Обновление..."
+                    rootPart.CFrame = targetCFrame
+                    task.wait(0.5)
+                    
+                    simulateKeyPressE()
+                    task.wait(0.6)
+                    
+                    simulateKeyPressE()
+                    task.wait(0.5)
+                    
+                    preciseMouseClick(1420, 533)
+                    task.wait(1.0)
+                    
+                    rootPart.CFrame = loopSavedPos * CFrame.new(0, 4, 0)
+                    task.wait(0.5)
+                end
+            end
+        end
+    end)
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        isFarming = not isFarming
+        if isFarming then
+            ToggleButton.Text = "Авто-готовка: ВКЛ"
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
+        else
+            firstRun = true
+            ToggleButton.Text = "Авто-готовка: ВЫКЛ"
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+            InfoLabel.Text = "Статус: Отключено"
+        end
+    end)
+end
+
+-- Создание меню (это то что появится после нажатия "Выживание на задних улицах")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SurvivalMenuGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+MainFrame.BackgroundColor3 = Colors.Frame
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local TitleBar = Instance.new("TextLabel")
+TitleBar.Size = UDim2.new(1, 0, 0, 30)
+TitleBar.BackgroundColor3 = Colors.TitleBar
+TitleBar.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
+TitleBar.TextColor3 = Colors.Text
+TitleBar.Font = Enum.Font.GothamBold
+TitleBar.TextSize = 10
+TitleBar.Parent = MainFrame
+
+MakeDraggable(MainFrame, TitleBar)
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 22, 0, 22)
+CloseButton.Position = UDim2.new(1, -27, 0, 4)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+CloseButton.Text = "✕"
+CloseButton.TextColor3 = Colors.Text
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 10
+CloseButton.Parent = TitleBar
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Кнопка "Телепорты"
+local teleportBtn = Instance.new("TextButton")
+teleportBtn.Size = UDim2.new(0.9, 0, 0, 35)
+teleportBtn.Position = UDim2.new(0.05, 0, 0, 40)
+teleportBtn.BackgroundColor3 = Colors.Button
+teleportBtn.Text = "📍 ТЕЛЕПОРТЫ"
+teleportBtn.TextColor3 = Colors.Text
+teleportBtn.Font = Enum.Font.GothamBold
+teleportBtn.TextSize = 11
+teleportBtn.Parent = MainFrame
+
+-- Кнопка "Фарм завода"
+local farmBtn = Instance.new("TextButton")
+farmBtn.Size = UDim2.new(0.9, 0, 0, 35)
+farmBtn.Position = UDim2.new(0.05, 0, 0, 80)
+farmBtn.BackgroundColor3 = Colors.Button
+farmBtn.Text = "🤖 ФАРМ ЗАВОДА"
+farmBtn.TextColor3 = Colors.Text
+farmBtn.Font = Enum.Font.GothamBold
+farmBtn.TextSize = 11
+farmBtn.Parent = MainFrame
+
+-- Кнопка "Авто готовка"
+local autoCookBtn = Instance.new("TextButton")
+autoCookBtn.Size = UDim2.new(0.9, 0, 0, 35)
+autoCookBtn.Position = UDim2.new(0.05, 0, 0, 120)
+autoCookBtn.BackgroundColor3 = Colors.Button
+autoCookBtn.Text = "🍳 АВТО ГОТОВКА"
+autoCookBtn.TextColor3 = Colors.Text
+autoCookBtn.Font = Enum.Font.GothamBold
+autoCookBtn.TextSize = 11
+autoCookBtn.Parent = MainFrame
+
+-- Обработчики
+teleportBtn.MouseButton1Click:Connect(function()
+    OpenTeleports()
+end)
+
+farmBtn.MouseButton1Click:Connect(function()
+    OpenFarmGUI()
+end)
+
+autoCookBtn.MouseButton1Click:Connect(function()
+    OpenAutoCookGUI()
+end)
+
+print("Survival menu loaded!")
