@@ -1,4 +1,4 @@
--- Solaris GUI v12.3 (Minus Key Opens Speed Menu)
+-- Solaris GUI v12.4 (Speed Fixed)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "12.3"
+local Version = "12.4"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -62,7 +62,7 @@ local Keys = {
     ESP = Enum.KeyCode.X,
     AutoClicker = Enum.KeyCode.LeftBracket,
     AutoClickerSpeed = Enum.KeyCode.Equals,
-    SpeedMenu = Enum.KeyCode.Minus, -- Клавиша - открывает меню скорости
+    SpeedMenu = Enum.KeyCode.Minus,
 }
 
 local Colors = {
@@ -242,6 +242,7 @@ local function TeleportToPlayer(playerName)
     return false
 end
 
+-- ИСПРАВЛЕННЫЙ ПОЛЁТ (использует FlySettings.Speed напрямую)
 local function ToggleFly()
     FlyEnabled = not FlyEnabled
     
@@ -283,8 +284,10 @@ local function ToggleFly()
             if moveDirection.Magnitude > 0 then
                 moveDirection = moveDirection.Unit
                 rootPart.Velocity = moveDirection * FlySettings.Speed
+                rootPart.AssemblyLinearVelocity = moveDirection * FlySettings.Speed
             else
                 rootPart.Velocity = Vector3.zero
+                rootPart.AssemblyLinearVelocity = Vector3.zero
             end
         end)
         
@@ -417,11 +420,10 @@ local function ToggleAutoClicker()
     end
 end
 
--- МЕНЮ СКОРОСТИ (открывается по клавише -)
+-- ИСПРАВЛЕННОЕ МЕНЮ СКОРОСТИ
 local function OpenSpeedMenu()
     local frame = CreateWindow("SpeedMenu", "⚡ СКОРОСТЬ", 300, 250)
     
-    -- Заголовок
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Size = UDim2.new(0.9, 0, 0, 35)
     titleLabel.Position = UDim2.new(0.05, 0, 0, 40)
@@ -432,7 +434,6 @@ local function OpenSpeedMenu()
     titleLabel.TextSize = 14
     titleLabel.Parent = frame
     
-    -- Кнопка уменьшить
     local decreaseBtn = Instance.new("TextButton")
     decreaseBtn.Size = UDim2.new(0.42, 0, 0, 50)
     decreaseBtn.Position = UDim2.new(0.05, 0, 0, 85)
@@ -446,10 +447,9 @@ local function OpenSpeedMenu()
     decreaseBtn.MouseButton1Click:Connect(function()
         FlySettings.Speed = math.clamp(FlySettings.Speed - 25, FlySettings.MinSpeed, FlySettings.MaxSpeed)
         titleLabel.Text = "Текущая скорость: " .. FlySettings.Speed
-        print("Скорость: " .. FlySettings.Speed)
+        print("Скорость изменена: " .. FlySettings.Speed)
     end)
     
-    -- Кнопка увеличить
     local increaseBtn = Instance.new("TextButton")
     increaseBtn.Size = UDim2.new(0.42, 0, 0, 50)
     increaseBtn.Position = UDim2.new(0.53, 0, 0, 85)
@@ -463,10 +463,9 @@ local function OpenSpeedMenu()
     increaseBtn.MouseButton1Click:Connect(function()
         FlySettings.Speed = math.clamp(FlySettings.Speed + 25, FlySettings.MinSpeed, FlySettings.MaxSpeed)
         titleLabel.Text = "Текущая скорость: " .. FlySettings.Speed
-        print("Скорость: " .. FlySettings.Speed)
+        print("Скорость изменена: " .. FlySettings.Speed)
     end)
     
-    -- Поле ввода
     local speedInput = Instance.new("TextBox")
     speedInput.Size = UDim2.new(0.9, 0, 0, 35)
     speedInput.Position = UDim2.new(0.05, 0, 0, 145)
@@ -478,7 +477,6 @@ local function OpenSpeedMenu()
     speedInput.TextSize = 12
     speedInput.Parent = frame
     
-    -- Кнопка применить
     local applyBtn = Instance.new("TextButton")
     applyBtn.Size = UDim2.new(0.9, 0, 0, 35)
     applyBtn.Position = UDim2.new(0.05, 0, 0, 185)
@@ -495,7 +493,7 @@ local function OpenSpeedMenu()
             FlySettings.Speed = math.clamp(newSpeed, FlySettings.MinSpeed, FlySettings.MaxSpeed)
             titleLabel.Text = "Текущая скорость: " .. FlySettings.Speed
             speedInput.Text = tostring(FlySettings.Speed)
-            print("Скорость: " .. FlySettings.Speed)
+            print("Скорость изменена: " .. FlySettings.Speed)
         end
     end)
 end
@@ -1132,3 +1130,4 @@ end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
 print("Клавиша '-' открывает меню скорости!")
+print("Скорость применяется сразу!")
