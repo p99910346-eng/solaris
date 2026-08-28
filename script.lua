@@ -1,28 +1,32 @@
--- Solaris GUI v8.3 (Fixed Numpad + Full Scanner + Bug Fixes)
+-- Solaris GUI v9.0 (Improved Fly System + Full Features)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local TextChatService = game:GetService("TextChatService") -- Добавил для защиты от спама
 
 local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "8.3"
+local Version = "9.0"
 
 local FlyEnabled = false
 local NoclipEnabled = false
 local ESPEnabled = false
-local FlySpeed = 50
 local FlyConnection = nil
 local NoclipConnection = nil
 local ESPConnection = nil
-local ScannerConnection = nil -- Добавил для отключения сканера
+local ScannerConnection = nil
 
--- Флаг для предотвращения множественного срабатывания клавиш
 local KeyCooldown = {}
+
+local FlySettings = {
+    Speed = 50,
+    MinSpeed = 10,
+    MaxSpeed = 500,
+    Smoothness = 0.3,
+}
 
 local QuickPlayers = {
     "Dfgvmg456",
@@ -39,7 +43,9 @@ local Keys = {
     Noclip = Enum.KeyCode.N,
     TPMouse = Enum.KeyCode.V,
     CopyCoords = Enum.KeyCode.C,
-    ESP = Enum.KeyCode.X
+    ESP = Enum.KeyCode.X,
+    SpeedUp = Enum.KeyCode.PageUp,
+    SpeedDown = Enum.KeyCode.PageDown
 }
 
 local Colors = {
@@ -53,16 +59,13 @@ local Colors = {
     ScrollBg = Color3.fromRGB(245, 245, 248)
 }
 
--- Безопасное получение персонажа
 local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
 
 local character = getCharacter()
 
--- Создание GUI с защитой от дублирования
 local function createGUI()
-    -- Проверяем, не существует ли уже GUI
     if LocalPlayer:FindFirstChild("PlayerGui"):FindFirstChild("SolarisGUI") then
         LocalPlayer:FindFirstChild("PlayerGui"):FindFirstChild("SolarisGUI"):Destroy()
     end
@@ -77,7 +80,6 @@ end
 
 local ScreenGui = createGUI()
 
--- Исправленное перетаскивание (проверка на nil)
 local function MakeDraggable(frame, titleBar)
     local isDragging = false
     local dragStart = nil
@@ -159,7 +161,7 @@ local function CreateWindow(title, width, height, zIndex)
 end
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 280, 0, 320)
+MainFrame.Size = UDim2.new(0, 280, 0, 360)
 MainFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
@@ -199,7 +201,6 @@ CloseButton.ZIndex = 999
 CloseButton.Parent = TitleBar
 
 CloseButton.MouseButton1Click:Connect(function()
-    -- Очищаем все соединения перед уничтожением
     if FlyConnection then FlyConnection:Disconnect() end
     if NoclipConnection then NoclipConnection:Disconnect() end
     if ESPConnection then ESPConnection:Disconnect() end
@@ -223,34 +224,84 @@ local function TeleportToPlayer(playerName)
     return false
 end
 
+local function ChangeFlySpeed(newSpeed)
+    FlySettings.Speed = math.clamp(newSpeed, FlySettings.MinSpeed, FlySettings.MaxSpeed)
+    return FlySettings.Speed
+end
+
+local function IncreaseFlySpeed()
+    return ChangeFlySpeed(FlySettings.Speed + 25)
+end
+
+local function DecreaseFlySpeed()
+    return ChangeFlySpeed(FlySettings.Speed - 25)
+end
+
 local function ToggleFly()
     FlyEnabled = not FlyEnabled
+    
     if FlyEnabled then
         if FlyConnection then FlyConnection:Disconnect() end
-        FlyConnection = RunService.RenderStepped:Connect(function()
+        
+        local currentVelocity = Vector3.zero
+        local targetVelocity = Vector3.zero
+        
+        FlyConnection = RunService.RenderStepped:Connect(function(deltaTime)
             local char = getCharacter()
             local humanoid = char and char:FindFirstChild("Humanoid")
             local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+            
             if not humanoid or not rootPart then return end
             
             humanoid.PlatformStand = true
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+            
             local camera = workspace.CurrentCamera
-            local direction = Vector3.new(0, 0, 0)
+            local moveDirection = Vector3.zero
             
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction += camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction -= camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction -= camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction += camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction += Vector3.new(0, 1, 0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then direction -= Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then 
+                moveDirection += camera.CFrame.LookVector 
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then 
+                moveDirection -= camera.CFrame.LookVector 
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then 
+                moveDirection -= camera.CFrame.RightVector 
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then 
+                moveDirection += camera.CFrame.RightVector 
+            end
             
-            if direction.Magnitude > 0 then
-                direction = direction.Unit
-                rootPart.Velocity = direction * FlySpeed
-                rootPart.AssemblyLinearVelocity = direction * FlySpeed
+            local verticalInput = 0
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then 
+                verticalInput += 1
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or 
+               UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then 
+                verticalInput -= 1
+            end
+            
+            if verticalInput ~= 0 then
+                moveDirection += Vector3.new(0, verticalInput, 0)
+            end
+            
+            if moveDirection.Magnitude > 0 then
+                moveDirection = moveDirection.Unit
+                targetVelocity = moveDirection * FlySettings.Speed
             else
-                rootPart.Velocity = Vector3.zero
-                rootPart.AssemblyLinearVelocity = Vector3.zero
+                targetVelocity = Vector3.zero
+            end
+            
+            local lerpFactor = math.min(1, FlySettings.Smoothness * deltaTime * 10)
+            currentVelocity = currentVelocity:Lerp(targetVelocity, lerpFactor)
+            
+            rootPart.Velocity = currentVelocity
+            rootPart.AssemblyLinearVelocity = currentVelocity
+            
+            if currentVelocity.Magnitude > 1 then
+                local lookDirection = currentVelocity.Unit
+                rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + lookDirection)
             end
         end)
     else
@@ -258,9 +309,12 @@ local function ToggleFly()
             FlyConnection:Disconnect() 
             FlyConnection = nil 
         end
+        
         local char = getCharacter()
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.PlatformStand = false
+            char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+            char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
         end
     end
 end
@@ -284,7 +338,6 @@ local function ToggleNoclip()
             NoclipConnection:Disconnect() 
             NoclipConnection = nil 
         end
-        -- Восстанавливаем коллизии
         local char = getCharacter()
         if char then
             for _, part in ipairs(char:GetDescendants()) do
@@ -306,9 +359,7 @@ local function ToggleESP()
                     local char = player.Character
                     local humanoid = char:FindFirstChild("Humanoid")
                     
-                    -- Проверяем, что персонаж жив
                     if not humanoid or humanoid.Health <= 0 then
-                        -- Удаляем ESP для мертвых
                         for _, part in ipairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then
                                 local highlight = part:FindFirstChild("ESP_" .. player.Name)
@@ -378,7 +429,6 @@ local function ToggleESP()
             ESPConnection = nil 
         end
         
-        -- Удаляем все ESP
         for _, player in ipairs(Players:GetPlayers()) do
             if player.Character then
                 for _, part in ipairs(player.Character:GetDescendants()) do
@@ -429,7 +479,129 @@ CreateButton("💾", "СОХРАНИТЬ СПАВН", function()
     end
 end)
 
--- ПОЛНЫЙ СКАНЕР (исправлен)
+CreateButton("✈️", "ПОЛЁТ (" .. Keys.Fly.Name .. ")", function()
+    ToggleFly()
+end)
+
+CreateButton("⚙️", "НАСТРОЙКИ ПОЛЁТА", function()
+    local frame = CreateWindow("⚙️ НАСТРОЙКИ ПОЛЁТА", 300, 350, 100)
+    
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Size = UDim2.new(0.9, 0, 0, 40)
+    speedLabel.Position = UDim2.new(0.05, 0, 0, 45)
+    speedLabel.BackgroundColor3 = Colors.Button
+    speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
+    speedLabel.TextColor3 = Colors.Text
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextSize = 14
+    speedLabel.Parent = frame
+    
+    local speedSlider = Instance.new("TextBox")
+    speedSlider.Size = UDim2.new(0.9, 0, 0, 35)
+    speedSlider.Position = UDim2.new(0.05, 0, 0, 95)
+    speedSlider.BackgroundColor3 = Colors.Input
+    speedSlider.Text = tostring(FlySettings.Speed)
+    speedSlider.PlaceholderText = "Введи скорость (10-500)"
+    speedSlider.TextColor3 = Colors.Text
+    speedSlider.Font = Enum.Font.Gotham
+    speedSlider.TextSize = 12
+    speedSlider.Parent = frame
+    
+    local applyBtn = Instance.new("TextButton")
+    applyBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    applyBtn.Position = UDim2.new(0.05, 0, 0, 140)
+    applyBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+    applyBtn.Text = "✅ ПРИМЕНИТЬ СКОРОСТЬ"
+    applyBtn.TextColor3 = Colors.Text
+    applyBtn.Font = Enum.Font.GothamBold
+    applyBtn.TextSize = 11
+    applyBtn.Parent = frame
+    
+    applyBtn.MouseButton1Click:Connect(function()
+        local newSpeed = tonumber(speedSlider.Text)
+        if newSpeed then
+            FlySettings.Speed = ChangeFlySpeed(newSpeed)
+            speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
+        end
+    end)
+    
+    local decreaseBtn = Instance.new("TextButton")
+    decreaseBtn.Size = UDim2.new(0.42, 0, 0, 40)
+    decreaseBtn.Position = UDim2.new(0.05, 0, 0, 185)
+    decreaseBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+    decreaseBtn.Text = "➖ МЕДЛЕННЕЕ"
+    decreaseBtn.TextColor3 = Colors.Text
+    decreaseBtn.Font = Enum.Font.GothamBold
+    decreaseBtn.TextSize = 11
+    decreaseBtn.Parent = frame
+    
+    decreaseBtn.MouseButton1Click:Connect(function()
+        FlySettings.Speed = DecreaseFlySpeed()
+        speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
+        speedSlider.Text = tostring(FlySettings.Speed)
+    end)
+    
+    local increaseBtn = Instance.new("TextButton")
+    increaseBtn.Size = UDim2.new(0.42, 0, 0, 40)
+    increaseBtn.Position = UDim2.new(0.53, 0, 0, 185)
+    increaseBtn.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
+    increaseBtn.Text = "➕ БЫСТРЕЕ"
+    increaseBtn.TextColor3 = Colors.Text
+    increaseBtn.Font = Enum.Font.GothamBold
+    increaseBtn.TextSize = 11
+    increaseBtn.Parent = frame
+    
+    increaseBtn.MouseButton1Click:Connect(function()
+        FlySettings.Speed = IncreaseFlySpeed()
+        speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
+        speedSlider.Text = tostring(FlySettings.Speed)
+    end)
+    
+    local presetsLabel = Instance.new("TextLabel")
+    presetsLabel.Size = UDim2.new(0.9, 0, 0, 25)
+    presetsLabel.Position = UDim2.new(0.05, 0, 0, 235)
+    presetsLabel.BackgroundColor3 = Colors.TitleBar
+    presetsLabel.Text = "БЫСТРЫЕ ПРЕСЕТЫ:"
+    presetsLabel.TextColor3 = Colors.Text
+    presetsLabel.Font = Enum.Font.GothamBold
+    presetsLabel.TextSize = 10
+    presetsLabel.Parent = frame
+    
+    local presets = {
+        {name = "🐢 25", speed = 25},
+        {name = "🚶 50", speed = 50},
+        {name = "🏃 100", speed = 100},
+        {name = "🚀 200", speed = 200},
+        {name = "⚡ 500", speed = 500}
+    }
+    
+    for i, preset in ipairs(presets) do
+        local presetBtn = Instance.new("TextButton")
+        presetBtn.Size = UDim2.new(0.28, 0, 0, 30)
+        presetBtn.Position = UDim2.new(0.05 + ((i - 1) % 3) * 0.31, 0, 0, 265 + math.floor((i - 1) / 3) * 35)
+        presetBtn.BackgroundColor3 = Colors.Button
+        presetBtn.Text = preset.name
+        presetBtn.TextColor3 = Colors.Text
+        presetBtn.Font = Enum.Font.Gotham
+        presetBtn.TextSize = 9
+        presetBtn.Parent = frame
+        
+        presetBtn.MouseButton1Click:Connect(function()
+            FlySettings.Speed = ChangeFlySpeed(preset.speed)
+            speedLabel.Text = "СКОРОСТЬ: " .. FlySettings.Speed
+            speedSlider.Text = tostring(FlySettings.Speed)
+        end)
+    end
+end)
+
+CreateButton("👻", "НОКЛИП (" .. Keys.Noclip.Name .. ")", function()
+    ToggleNoclip()
+end)
+
+CreateButton("🔴", "ESP (" .. Keys.ESP.Name .. ")", function()
+    ToggleESP()
+end)
+
 CreateButton("🔍", "СКАНЕР ПАРТ", function()
     local ScannerFrame = Instance.new("Frame")
     ScannerFrame.Size = UDim2.new(0, 320, 0, 340)
@@ -449,7 +621,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     ScannerStroke.Thickness = 2
     ScannerStroke.Parent = ScannerFrame
     
-    -- Исправлено: заголовок для перетаскивания
     local ScannerTitle = Instance.new("TextLabel")
     ScannerTitle.Size = UDim2.new(1, 0, 0, 45)
     ScannerTitle.BackgroundColor3 = Colors.TitleBar
@@ -460,7 +631,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     ScannerTitle.ZIndex = 301
     ScannerTitle.Parent = ScannerFrame
     
-    -- Перетаскивание через заголовок
     MakeDraggable(ScannerFrame, ScannerTitle)
     
     local ScannerClose = Instance.new("TextButton")
@@ -551,8 +721,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
         
         while parent and parent ~= game do
             local safeName = parent.Name
-            
-            -- Проверяем, нужны ли кавычки
             local needsQuotes = string.find(safeName, " ") or string.find(safeName, "[%p]") or string.match(safeName, "^%d")
             
             if needsQuotes then
@@ -568,7 +736,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     end
     
     local function updateChildrenList(obj)
-        -- Очищаем список
         for _, child in pairs(ChildrenScroll:GetChildren()) do
             if child:IsA("TextLabel") then 
                 child:Destroy() 
@@ -602,7 +769,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
         end
     end
     
-    -- Исправлено: отдельное соединение для сканера
     if ScannerConnection then ScannerConnection:Disconnect() end
     ScannerConnection = RunService.RenderStepped:Connect(function()
         if isSelecting and Mouse.Target then
@@ -612,7 +778,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
         end
     end)
     
-    -- Исправлено: проверка на существование Target
     Mouse.Button1Down:Connect(function()
         if isSelecting and Mouse.Target then
             local target = Mouse.Target
@@ -620,7 +785,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
             PathLabel.Text = getCleanPath(target)
             updateChildrenList(target)
             
-            -- Безопасное копирование в буфер
             pcall(function()
                 setclipboard(getCleanPath(target))
             end)
@@ -646,7 +810,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     end)
 end)
 
--- ТОЧКИ С НУМПАДОМ (исправлено)
 CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
     local frame = CreateWindow("📍 ТОЧКИ (Numpad 1-9)", 300, 300, 100)
     
@@ -669,7 +832,6 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
     list.Parent = frame
     
     local function refresh()
-        -- Очищаем список
         for _, child in ipairs(list:GetChildren()) do 
             if child:IsA("Frame") then
                 child:Destroy() 
@@ -809,7 +971,6 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     tpBtn.MouseButton1Click:Connect(function() 
         local success = TeleportToPlayer(tb.Text)
         if not success then
-            -- Показываем ошибку
             tpBtn.Text = "❌ ИГРОК НЕ НАЙДЕН"
             wait(1)
             tpBtn.Text = "🚀 ТЕЛЕПОРТИРОВАТЬСЯ"
@@ -888,21 +1049,7 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 5)
 end)
 
-CreateButton("🎮", "ИГРЫ", function()
-    local frame = CreateWindow("🎮 ИГРЫ", 250, 150, 100)
-    
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.Position = UDim2.new(0.05, 0, 0, 45)
-    btn.BackgroundColor3 = Colors.Button
-    btn.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
-    btn.TextColor3 = Colors.Text
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 10
-    btn.Parent = frame
-end)
-
-CreateButton("⚙️", "НАСТРОЙКИ", function()
+CreateButton("⚙️", "НАСТРОЙКИ КЛАВИШ", function()
     local frame = CreateWindow("⚙️ НАСТРОЙКИ КЛАВИШ", 300, 250, 100)
     
     local names = {
@@ -911,7 +1058,9 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
         Noclip = "👻 Ноклип", 
         TPMouse = "🖱️ ТП мышь", 
         CopyCoords = "📋 Координаты", 
-        ESP = "🔴 ESP"
+        ESP = "🔴 ESP",
+        SpeedUp = "⬆️ Скорость+",
+        SpeedDown = "⬇️ Скорость-"
     }
     
     local y = 40
@@ -953,7 +1102,6 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
     end
 end)
 
--- Обработка возрождения персонажа
 LocalPlayer.CharacterAdded:Connect(function(char)
     if SpawnPoint then
         wait(0.5)
@@ -962,23 +1110,18 @@ LocalPlayer.CharacterAdded:Connect(function(char)
             root.CFrame = SpawnPoint 
         end
     end
-    
-    -- Обновляем ссылку на персонажа
     character = char
 end)
 
--- Исправленные горячие клавиши с защитой от повторного срабатывания
 UserInputService.InputBegan:Connect(function(input, gp)
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
     
-    -- Защита от удержания клавиши
     if KeyCooldown[input.KeyCode] and tick() - KeyCooldown[input.KeyCode] < 0.5 then
         return
     end
     
     KeyCooldown[input.KeyCode] = tick()
     
-    -- Скрытие GUI
     if input.KeyCode == Keys.HideGUI then
         GUIHidden = not GUIHidden
         for _, child in ipairs(ScreenGui:GetChildren()) do
@@ -988,10 +1131,8 @@ UserInputService.InputBegan:Connect(function(input, gp)
         end
     end
     
-    -- Не обрабатываем при вводе текста
     if gp then return end
     
-    -- Функциональные клавиши
     if input.KeyCode == Keys.Fly then 
         ToggleFly() 
     end
@@ -1002,6 +1143,16 @@ UserInputService.InputBegan:Connect(function(input, gp)
     
     if input.KeyCode == Keys.ESP then 
         ToggleESP() 
+    end
+    
+    if input.KeyCode == Keys.SpeedUp then
+        FlySettings.Speed = IncreaseFlySpeed()
+        print("Скорость полёта: " .. FlySettings.Speed)
+    end
+    
+    if input.KeyCode == Keys.SpeedDown then
+        FlySettings.Speed = DecreaseFlySpeed()
+        print("Скорость полёта: " .. FlySettings.Speed)
     end
     
     if input.KeyCode == Keys.TPMouse then
@@ -1022,7 +1173,6 @@ UserInputService.InputBegan:Connect(function(input, gp)
         end
     end
     
-    -- НУМПАД (только нумпад, не цифры сверху)
     local numpadPoints = {
         [Enum.KeyCode.KeypadOne] = 1,
         [Enum.KeyCode.KeypadTwo] = 2,
@@ -1042,7 +1192,6 @@ UserInputService.InputBegan:Connect(function(input, gp)
         end
     end
     
-    -- Быстрый ТП на F1-F6
     local quickTP = {
         [Enum.KeyCode.F1] = "Dfgvmg456",
         [Enum.KeyCode.F2] = "minti",
@@ -1057,7 +1206,6 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
--- Очистка при выходе
 game:GetService("Players").LocalPlayer.OnTeleport:Connect(function()
     if FlyConnection then FlyConnection:Disconnect() end
     if NoclipConnection then NoclipConnection:Disconnect() end
@@ -1066,4 +1214,5 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function()
 end)
 
 print("Solaris GUI v" .. Version .. " готов!")
-print("Нумпад 1-9 работает! Сканер полный! Баги исправлены!")
+print("Улучшенный полёт активирован!")
+print("Нумпад 1-9 работает! Сканер полный!")
