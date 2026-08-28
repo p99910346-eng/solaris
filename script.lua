@@ -1,4 +1,4 @@
--- Solaris GUI v9.1 (Hotkeys Only + Improved Fly)
+-- Solaris GUI v9.2 (Fixed GUI Display)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "9.1"
+local Version = "9.2"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -39,13 +39,11 @@ local QuickPlayers = {
 
 local Keys = {
     HideGUI = Enum.KeyCode.RightShift,
-    Fly = Enum.KeyCode.KeypadZero,        -- 0 на нумпаде
+    Fly = Enum.KeyCode.KeypadZero,
     Noclip = Enum.KeyCode.N,
     TPMouse = Enum.KeyCode.V,
     CopyCoords = Enum.KeyCode.C,
     ESP = Enum.KeyCode.X,
-    SpeedUp = Enum.KeyCode.KeypadPeriod,   -- . на нумпаде
-    SpeedDown = Enum.KeyCode.KeypadComma   -- , на нумпаде (если есть)
 }
 
 local Colors = {
@@ -63,22 +61,13 @@ local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
 
-local character = getCharacter()
-
-local function createGUI()
-    if LocalPlayer:FindFirstChild("PlayerGui"):FindFirstChild("SolarisGUI") then
-        LocalPlayer:FindFirstChild("PlayerGui"):FindFirstChild("SolarisGUI"):Destroy()
-    end
-    
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "SolarisGUI"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    return ScreenGui
-end
-
-local ScreenGui = createGUI()
+-- Создаём GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SolarisGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999999
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local function MakeDraggable(frame, titleBar)
     local isDragging = false
@@ -160,12 +149,15 @@ local function CreateWindow(title, width, height, zIndex)
     return frame
 end
 
+-- Главный фрейм
 local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 280, 0, 280)
 MainFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
+MainFrame.ZIndex = 1000
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
@@ -481,6 +473,7 @@ local function CreateButton(emoji, text, callback)
     Button.TextColor3 = Colors.Text
     Button.Font = Enum.Font.GothamBold
     Button.TextSize = 12
+    Button.ZIndex = 1000
     Button.Parent = MainFrame
     
     Button.MouseEnter:Connect(function() 
@@ -501,6 +494,7 @@ CreateButton("💾", "СОХРАНИТЬ СПАВН", function()
     local char = getCharacter()
     if char and char:FindFirstChild("HumanoidRootPart") then
         SpawnPoint = char.HumanoidRootPart.CFrame
+        print("Спавн сохранён!")
     end
 end)
 
@@ -959,7 +953,6 @@ LocalPlayer.CharacterAdded:Connect(function(char)
             root.CFrame = SpawnPoint 
         end
     end
-    character = char
 end)
 
 UserInputService.InputBegan:Connect(function(input, gp)
@@ -982,21 +975,16 @@ UserInputService.InputBegan:Connect(function(input, gp)
     
     if gp then return end
     
-    if input.KeyCode == Keys.Fly then 
+    if input.KeyCode == Enum.KeyCode.KeypadZero then 
         ToggleFly() 
     end
     
-    if input.KeyCode == Keys.Noclip then 
+    if input.KeyCode == Enum.KeyCode.N then 
         ToggleNoclip() 
     end
     
-    if input.KeyCode == Keys.ESP then 
+    if input.KeyCode == Enum.KeyCode.X then 
         ToggleESP() 
-    end
-    
-    if input.KeyCode == Keys.SpeedUp then
-        FlySettings.Speed = IncreaseFlySpeed()
-        print("Скорость полёта: " .. FlySettings.Speed)
     end
     
     if input.KeyCode == Enum.KeyCode.KeypadPeriod then
@@ -1009,14 +997,14 @@ UserInputService.InputBegan:Connect(function(input, gp)
         print("Скорость полёта: " .. FlySettings.Speed)
     end
     
-    if input.KeyCode == Keys.TPMouse then
+    if input.KeyCode == Enum.KeyCode.V then
         local char = getCharacter()
         if char and char:FindFirstChild("HumanoidRootPart") then
             SmoothTP(CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0)))
         end
     end
     
-    if input.KeyCode == Keys.CopyCoords then
+    if input.KeyCode == Enum.KeyCode.C then
         local char = getCharacter()
         if char and char:FindFirstChild("HumanoidRootPart") then
             local p = char.HumanoidRootPart.Position
@@ -1067,6 +1055,6 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function()
     if ScannerConnection then ScannerConnection:Disconnect() end
 end)
 
-print("Solaris GUI v" .. Version .. " готов!")
+print("Solaris GUI v" .. Version .. " загружен!")
+print("GUI должен отображаться!")
 print("Клавиши: 0 - Полёт, . - Скорость+, N - Ноклип, X - ESP")
-print("Нумпад 1-9 - Точки ТП")
