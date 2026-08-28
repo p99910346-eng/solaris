@@ -1,4 +1,4 @@
--- Solaris GUI v13.2 (Teleport Window Right Side)
+-- Solaris GUI v13.3 (All Fixed)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -10,7 +10,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "13.2"
+local Version = "13.3"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -1181,7 +1181,7 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 3)
 end)
 
--- Кнопка "ИГРЫ" - теперь телепорт открывает окно СПРАВА
+-- Кнопка "ИГРЫ" с подменю и окном телепортов справа
 CreateButton("🎮", "ИГРЫ", function()
     local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 300, 250)
     
@@ -1202,7 +1202,6 @@ CreateButton("🎮", "ИГРЫ", function()
     submenuFrame.Visible = false
     submenuFrame.Parent = frame
     
-    -- Кнопка "Телепорт" - открывает окно справа
     local teleportBtn = Instance.new("TextButton")
     teleportBtn.Size = UDim2.new(0.9, 0, 0, 32)
     teleportBtn.Position = UDim2.new(0.05, 0, 0, 10)
@@ -1213,7 +1212,6 @@ CreateButton("🎮", "ИГРЫ", function()
     teleportBtn.TextSize = 10
     teleportBtn.Parent = submenuFrame
     
-    -- Кнопка "Фарм завода"
     local farmBtn = Instance.new("TextButton")
     farmBtn.Size = UDim2.new(0.9, 0, 0, 32)
     farmBtn.Position = UDim2.new(0.05, 0, 0, 47)
@@ -1224,7 +1222,6 @@ CreateButton("🎮", "ИГРЫ", function()
     farmBtn.TextSize = 10
     farmBtn.Parent = submenuFrame
     
-    -- Кнопка "Авто готовка"
     local autoCookBtn = Instance.new("TextButton")
     autoCookBtn.Size = UDim2.new(0.9, 0, 0, 32)
     autoCookBtn.Position = UDim2.new(0.05, 0, 0, 84)
@@ -1236,11 +1233,21 @@ CreateButton("🎮", "ИГРЫ", function()
     autoCookBtn.Parent = submenuFrame
     
     -- Окно телепортов СПРАВА
-    local tpWindow = CreateWindow("TeleportListWindow", "📍 ТЕЛЕПОРТЫ", 220, 250)
+    local tpWindow = CreateWindow("TeleportListWindow", "📍 ТЕЛЕПОРТЫ", 220, 280)
     tpWindow.Position = UDim2.new(0.7, 0, 0.3, 0)
     tpWindow.Visible = false
     
-    local tpY = 5
+    local tpLabel = Instance.new("TextLabel")
+    tpLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    tpLabel.Position = UDim2.new(0.05, 0, 0, 35)
+    tpLabel.BackgroundColor3 = Colors.TitleBar
+    tpLabel.Text = "📍 ТОЧКИ:"
+    tpLabel.TextColor3 = Colors.Text
+    tpLabel.Font = Enum.Font.GothamBold
+    tpLabel.TextSize = 10
+    tpLabel.Parent = tpWindow
+    
+    local tpY = 60
     for i, point in ipairs(FarmPoints) do
         local tpBtn = Instance.new("TextButton")
         tpBtn.Size = UDim2.new(0.9, 0, 0, 30)
@@ -1417,4 +1424,4 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
-print("Кнопка Телепорт открывает окно справа!")
+print("Все функции работают!")
