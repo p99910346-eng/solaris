@@ -1,8 +1,7 @@
--- Solaris GUI v10.4 (ESP Fixed)
+-- Solaris GUI v10.6 (All Fixed)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
@@ -10,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "10.4"
+local Version = "10.6"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -28,7 +27,6 @@ local FlySettings = {
     Speed = 50,
     MinSpeed = 10,
     MaxSpeed = 500,
-    Smoothness = 0.3,
 }
 
 local AutoClickerSettings = {
@@ -55,6 +53,7 @@ local Keys = {
     ESP = Enum.KeyCode.X,
     AutoClicker = Enum.KeyCode.LeftBracket,
     AutoClickerSpeed = Enum.KeyCode.Equals,
+    FlySpeedWindow = Enum.KeyCode.KeypadPeriod,
 }
 
 local Colors = {
@@ -63,7 +62,6 @@ local Colors = {
     Button = Color3.fromRGB(240, 240, 245),
     ButtonHover = Color3.fromRGB(220, 220, 230),
     Text = Color3.fromRGB(30, 30, 40),
-    Border = Color3.fromRGB(180, 180, 190),
     Input = Color3.fromRGB(235, 235, 240),
     ScrollBg = Color3.fromRGB(245, 245, 248)
 }
@@ -76,6 +74,8 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SolarisGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local OpenWindows = {}
 
 local function MakeDraggable(frame, titleBar)
     local isDragging = false
@@ -109,8 +109,14 @@ local function MakeDraggable(frame, titleBar)
     end)
 end
 
-local function CreateWindow(title, width, height)
+local function CreateWindow(windowName, title, width, height)
+    if OpenWindows[windowName] then
+        OpenWindows[windowName]:Destroy()
+        OpenWindows[windowName] = nil
+    end
+    
     local frame = Instance.new("Frame")
+    frame.Name = windowName
     frame.Size = UDim2.new(0, width, 0, height)
     frame.Position = UDim2.new(0.5, -width/2, 0.5, -height/2)
     frame.BackgroundColor3 = Colors.Frame
@@ -143,9 +149,11 @@ local function CreateWindow(title, width, height)
     closeBtn.Parent = titleBar
     
     closeBtn.MouseButton1Click:Connect(function()
+        OpenWindows[windowName] = nil
         frame:Destroy()
     end)
     
+    OpenWindows[windowName] = frame
     return frame
 end
 
@@ -205,19 +213,6 @@ local function TeleportToPlayer(playerName)
         return true
     end
     return false
-end
-
-local function ChangeFlySpeed(newSpeed)
-    FlySettings.Speed = math.clamp(newSpeed, FlySettings.MinSpeed, FlySettings.MaxSpeed)
-    return FlySettings.Speed
-end
-
-local function IncreaseFlySpeed()
-    return ChangeFlySpeed(FlySettings.Speed + 25)
-end
-
-local function DecreaseFlySpeed()
-    return ChangeFlySpeed(FlySettings.Speed - 25)
 end
 
 local function ToggleFly()
@@ -314,7 +309,6 @@ local function ToggleNoclip()
     end
 end
 
--- Исправленный ESP с нормальным цветом HP
 local function ToggleESP()
     ESPEnabled = not ESPEnabled
     if ESPEnabled then
@@ -371,13 +365,12 @@ local function ToggleESP()
                             
                             label.Text = "❤️ " .. hp
                             
-                            -- Исправленные цвета с яркостью
                             if hpPercent > 0.5 then
-                                label.TextColor3 = Color3.fromRGB(0, 255, 0) -- Зелёный
+                                label.TextColor3 = Color3.fromRGB(0, 255, 0)
                             elseif hpPercent > 0.25 then
-                                label.TextColor3 = Color3.fromRGB(255, 255, 0) -- Жёлтый
+                                label.TextColor3 = Color3.fromRGB(255, 255, 0)
                             else
-                                label.TextColor3 = Color3.fromRGB(255, 0, 0) -- Красный
+                                label.TextColor3 = Color3.fromRGB(255, 0, 0)
                             end
                         end
                     end
@@ -436,8 +429,90 @@ local function ToggleAutoClicker()
     end
 end
 
-local function OpenAutoClickerSpeedSettings()
-    local frame = CreateWindow("⚡ СКОРОСТЬ АВТОКЛИКЕРА", 280, 200)
+local function OpenFlySpeedWindow()
+    local frame = CreateWindow("FlySpeedWindow", "✈️ СКОРОСТЬ ПОЛЁТА", 280, 250)
+    
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Size = UDim2.new(0.9, 0, 0, 40)
+    speedLabel.Position = UDim2.new(0.05, 0, 0, 45)
+    speedLabel.BackgroundColor3 = Colors.Button
+    speedLabel.Text = "Текущая скорость: " .. FlySettings.Speed
+    speedLabel.TextColor3 = Colors.Text
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextSize = 14
+    speedLabel.Parent = frame
+    
+    local speedInput = Instance.new("TextBox")
+    speedInput.Size = UDim2.new(0.9, 0, 0, 35)
+    speedInput.Position = UDim2.new(0.05, 0, 0, 95)
+    speedInput.BackgroundColor3 = Colors.Input
+    speedInput.PlaceholderText = "Скорость (10-500)"
+    speedInput.Text = tostring(FlySettings.Speed)
+    speedInput.TextColor3 = Colors.Text
+    speedInput.Font = Enum.Font.Gotham
+    speedInput.TextSize = 12
+    speedInput.Parent = frame
+    
+    local applyBtn = Instance.new("TextButton")
+    applyBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    applyBtn.Position = UDim2.new(0.05, 0, 0, 140)
+    applyBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+    applyBtn.Text = "✅ ПРИМЕНИТЬ"
+    applyBtn.TextColor3 = Colors.Text
+    applyBtn.Font = Enum.Font.GothamBold
+    applyBtn.TextSize = 12
+    applyBtn.Parent = frame
+    
+    applyBtn.MouseButton1Click:Connect(function()
+        local newSpeed = tonumber(speedInput.Text)
+        if newSpeed then
+            FlySettings.Speed = math.clamp(newSpeed, FlySettings.MinSpeed, FlySettings.MaxSpeed)
+            speedLabel.Text = "Текущая скорость: " .. FlySettings.Speed
+            speedInput.Text = tostring(FlySettings.Speed)
+            print("Скорость полёта: " .. FlySettings.Speed)
+        end
+    end)
+    
+    local presetsLabel = Instance.new("TextLabel")
+    presetsLabel.Size = UDim2.new(0.9, 0, 0, 25)
+    presetsLabel.Position = UDim2.new(0.05, 0, 0, 185)
+    presetsLabel.BackgroundColor3 = Colors.TitleBar
+    presetsLabel.Text = "БЫСТРЫЕ ПРЕСЕТЫ:"
+    presetsLabel.TextColor3 = Colors.Text
+    presetsLabel.Font = Enum.Font.GothamBold
+    presetsLabel.TextSize = 10
+    presetsLabel.Parent = frame
+    
+    local presets = {
+        {name = "🐢 25", speed = 25},
+        {name = "🚶 50", speed = 50},
+        {name = "🏃 100", speed = 100},
+        {name = "🚀 200", speed = 200},
+        {name = "⚡ 500", speed = 500}
+    }
+    
+    for i, preset in ipairs(presets) do
+        local presetBtn = Instance.new("TextButton")
+        presetBtn.Size = UDim2.new(0.28, 0, 0, 30)
+        presetBtn.Position = UDim2.new(0.05 + ((i - 1) % 3) * 0.31, 0, 0, 215 + math.floor((i - 1) / 3) * 35)
+        presetBtn.BackgroundColor3 = Colors.Button
+        presetBtn.Text = preset.name
+        presetBtn.TextColor3 = Colors.Text
+        presetBtn.Font = Enum.Font.Gotham
+        presetBtn.TextSize = 9
+        presetBtn.Parent = frame
+        
+        presetBtn.MouseButton1Click:Connect(function()
+            FlySettings.Speed = preset.speed
+            speedLabel.Text = "Текущая скорость: " .. FlySettings.Speed
+            speedInput.Text = tostring(FlySettings.Speed)
+            print("Скорость полёта: " .. FlySettings.Speed)
+        end)
+    end
+end
+
+local function OpenAutoClickerSpeedWindow()
+    local frame = CreateWindow("AutoClickerSpeedWindow", "⚡ СКОРОСТЬ АВТОКЛИКЕРА", 280, 200)
     
     local speedLabel = Instance.new("TextLabel")
     speedLabel.Size = UDim2.new(0.9, 0, 0, 40)
@@ -453,7 +528,7 @@ local function OpenAutoClickerSpeedSettings()
     speedInput.Size = UDim2.new(0.9, 0, 0, 35)
     speedInput.Position = UDim2.new(0.05, 0, 0, 95)
     speedInput.BackgroundColor3 = Colors.Input
-    speedInput.PlaceholderText = "Введи скорость (1-50)"
+    speedInput.PlaceholderText = "Скорость (1-50)"
     speedInput.Text = tostring(AutoClickerSettings.Speed)
     speedInput.TextColor3 = Colors.Text
     speedInput.Font = Enum.Font.Gotham
@@ -517,46 +592,14 @@ CreateButton("💾", "СОХРАНИТЬ СПАВН", function()
 end)
 
 CreateButton("🔍", "СКАНЕР ПАРТ", function()
-    local ScannerFrame = Instance.new("Frame")
-    ScannerFrame.Size = UDim2.new(0, 320, 0, 340)
-    ScannerFrame.Position = UDim2.new(0.35, 0, 0.25, 0)
-    ScannerFrame.BackgroundColor3 = Colors.Frame
-    ScannerFrame.BorderSizePixel = 0
-    ScannerFrame.Parent = ScreenGui
-    
-    local ScannerTitle = Instance.new("TextLabel")
-    ScannerTitle.Size = UDim2.new(1, 0, 0, 45)
-    ScannerTitle.BackgroundColor3 = Colors.TitleBar
-    ScannerTitle.Text = "🔍 СКАНЕР ОБЪЕКТОВ"
-    ScannerTitle.TextColor3 = Colors.Text
-    ScannerTitle.Font = Enum.Font.GothamBold
-    ScannerTitle.TextSize = 15
-    ScannerTitle.Parent = ScannerFrame
-    
-    MakeDraggable(ScannerFrame, ScannerTitle)
-    
-    local ScannerClose = Instance.new("TextButton")
-    ScannerClose.Size = UDim2.new(0, 25, 0, 25)
-    ScannerClose.Position = UDim2.new(1, -30, 0, 10)
-    ScannerClose.BackgroundColor3 = Color3.fromRGB(200, 100, 100)
-    ScannerClose.Text = "✕"
-    ScannerClose.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ScannerClose.Font = Enum.Font.GothamBold
-    ScannerClose.TextSize = 12
-    ScannerClose.Parent = ScannerFrame
+    local ScannerFrame = CreateWindow("ScannerWindow", "🔍 СКАНЕР ОБЪЕКТОВ", 320, 340)
     
     local isSelecting = false
     local currentHighlight = Instance.new("Highlight")
     
-    ScannerClose.MouseButton1Click:Connect(function()
-        if ScannerConnection then ScannerConnection:Disconnect() end
-        currentHighlight:Destroy()
-        ScannerFrame:Destroy()
-    end)
-    
     local ToggleSelector = Instance.new("TextButton")
     ToggleSelector.Size = UDim2.new(0.9, 0, 0, 40)
-    ToggleSelector.Position = UDim2.new(0.05, 0, 0, 55)
+    ToggleSelector.Position = UDim2.new(0.05, 0, 0, 45)
     ToggleSelector.BackgroundColor3 = Colors.Button
     ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
     ToggleSelector.TextColor3 = Color3.fromRGB(100, 100, 120)
@@ -566,7 +609,7 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     
     local InfoContainer = Instance.new("Frame")
     InfoContainer.Size = UDim2.new(0.9, 0, 0, 215)
-    InfoContainer.Position = UDim2.new(0.05, 0, 0, 105)
+    InfoContainer.Position = UDim2.new(0.05, 0, 0, 95)
     InfoContainer.BackgroundColor3 = Colors.ScrollBg
     InfoContainer.Parent = ScannerFrame
     
@@ -677,11 +720,11 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
 end)
 
 CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
-    local frame = CreateWindow("📍 ТОЧКИ (Numpad 1-9)", 300, 300)
+    local frame = CreateWindow("PointsWindow", "📍 ТОЧКИ (Numpad 1-9)", 300, 300)
     
     local createBtn = Instance.new("TextButton")
     createBtn.Size = UDim2.new(0.9, 0, 0, 35)
-    createBtn.Position = UDim2.new(0.05, 0, 0, 40)
+    createBtn.Position = UDim2.new(0.05, 0, 0, 45)
     createBtn.BackgroundColor3 = Colors.Button
     createBtn.Text = "➕ СОЗДАТЬ ТОЧКУ"
     createBtn.TextColor3 = Colors.Text
@@ -691,7 +734,7 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
     
     local list = Instance.new("ScrollingFrame")
     list.Size = UDim2.new(0.9, 0, 0, 220)
-    list.Position = UDim2.new(0.05, 0, 0, 80)
+    list.Position = UDim2.new(0.05, 0, 0, 85)
     list.BackgroundColor3 = Colors.ScrollBg
     list.ScrollBarThickness = 5
     list.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -712,7 +755,7 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
             container.Parent = list
             
             local tpBtn = Instance.new("TextButton")
-            tpBtn.Size = UDim2.new(0.7, 0, 1, 0)
+            tpBtn.Size = UDim2.new(0.6, 0, 1, 0)
             tpBtn.BackgroundColor3 = Colors.Button
             tpBtn.Text = idx .. ". " .. point.Name
             tpBtn.TextColor3 = Colors.Text
@@ -723,9 +766,64 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
                 SmoothTP(point.CFrame) 
             end)
             
+            local renameBtn = Instance.new("TextButton")
+            renameBtn.Size = UDim2.new(0.2, 0, 1, 0)
+            renameBtn.Position = UDim2.new(0.6, 0, 0, 0)
+            renameBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 220)
+            renameBtn.Text = "✏️"
+            renameBtn.TextSize = 11
+            renameBtn.Parent = container
+            
+            renameBtn.MouseButton1Click:Connect(function()
+                local renameFrame = CreateWindow("RenameWindow", "✏️ ПЕРЕИМЕНОВАТЬ", 250, 100)
+                
+                local textBox = Instance.new("TextBox")
+                textBox.Size = UDim2.new(0.9, 0, 0, 30)
+                textBox.Position = UDim2.new(0.05, 0, 0, 40)
+                textBox.BackgroundColor3 = Colors.Input
+                textBox.Text = point.Name
+                textBox.TextColor3 = Colors.Text
+                textBox.Font = Enum.Font.Gotham
+                textBox.TextSize = 12
+                textBox.ClearTextOnFocus = false
+                textBox.Parent = renameFrame
+                
+                local okBtn = Instance.new("TextButton")
+                okBtn.Size = UDim2.new(0.45, 0, 0, 25)
+                okBtn.Position = UDim2.new(0.05, 0, 0, 75)
+                okBtn.BackgroundColor3 = Colors.Button
+                okBtn.Text = "✅ OK"
+                okBtn.TextColor3 = Colors.Text
+                okBtn.Font = Enum.Font.GothamBold
+                okBtn.TextSize = 10
+                okBtn.Parent = renameFrame
+                
+                okBtn.MouseButton1Click:Connect(function()
+                    if textBox.Text ~= "" then
+                        CustomPoints[idx].Name = textBox.Text
+                        renameFrame:Destroy()
+                        refresh()
+                    end
+                end)
+                
+                local cancelBtn = Instance.new("TextButton")
+                cancelBtn.Size = UDim2.new(0.45, 0, 0, 25)
+                cancelBtn.Position = UDim2.new(0.55, 0, 0, 75)
+                cancelBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 200)
+                cancelBtn.Text = "❌ Отмена"
+                cancelBtn.TextColor3 = Colors.Text
+                cancelBtn.Font = Enum.Font.GothamBold
+                cancelBtn.TextSize = 10
+                cancelBtn.Parent = renameFrame
+                
+                cancelBtn.MouseButton1Click:Connect(function()
+                    renameFrame:Destroy()
+                end)
+            end)
+            
             local delBtn = Instance.new("TextButton")
-            delBtn.Size = UDim2.new(0.3, 0, 1, 0)
-            delBtn.Position = UDim2.new(0.7, 0, 0, 0)
+            delBtn.Size = UDim2.new(0.2, 0, 1, 0)
+            delBtn.Position = UDim2.new(0.8, 0, 0, 0)
             delBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
             delBtn.Text = "🗑️"
             delBtn.TextSize = 11
@@ -758,11 +856,11 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
 end)
 
 CreateButton("👤", "ТП К ИГРОКУ", function()
-    local frame = CreateWindow("👤 ТП К ИГРОКУ", 250, 350)
+    local frame = CreateWindow("TeleportWindow", "👤 ТП К ИГРОКУ", 250, 350)
     
     local tb = Instance.new("TextBox")
     tb.Size = UDim2.new(0.9, 0, 0, 30)
-    tb.Position = UDim2.new(0.05, 0, 0, 40)
+    tb.Position = UDim2.new(0.05, 0, 0, 45)
     tb.BackgroundColor3 = Colors.Input
     tb.PlaceholderText = "🔍 Имя игрока..."
     tb.TextColor3 = Colors.Text
@@ -770,7 +868,7 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     
     local tpBtn = Instance.new("TextButton")
     tpBtn.Size = UDim2.new(0.9, 0, 0, 30)
-    tpBtn.Position = UDim2.new(0.05, 0, 0, 75)
+    tpBtn.Position = UDim2.new(0.05, 0, 0, 80)
     tpBtn.BackgroundColor3 = Colors.Button
     tpBtn.Text = "🚀 ТЕЛЕПОРТИРОВАТЬСЯ"
     tpBtn.TextColor3 = Colors.Text
@@ -781,9 +879,42 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
         TeleportToPlayer(tb.Text)
     end)
     
+    local quickLabel = Instance.new("TextLabel")
+    quickLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    quickLabel.Position = UDim2.new(0.05, 0, 0, 115)
+    quickLabel.BackgroundColor3 = Colors.TitleBar
+    quickLabel.Text = "⚡ БЫСТРЫЙ ТП:"
+    quickLabel.TextColor3 = Colors.Text
+    quickLabel.Font = Enum.Font.GothamBold
+    quickLabel.TextSize = 10
+    quickLabel.Parent = frame
+    
+    local quickList = Instance.new("ScrollingFrame")
+    quickList.Size = UDim2.new(0.9, 0, 0, 100)
+    quickList.Position = UDim2.new(0.05, 0, 0, 140)
+    quickList.BackgroundColor3 = Colors.ScrollBg
+    quickList.ScrollBarThickness = 5
+    quickList.CanvasSize = UDim2.new(0, 0, 0, #QuickPlayers * 35)
+    quickList.Parent = frame
+    
+    for i, pName in ipairs(QuickPlayers) do
+        local qBtn = Instance.new("TextButton")
+        qBtn.Size = UDim2.new(1, -10, 0, 30)
+        qBtn.Position = UDim2.new(0, 5, 0, (i-1) * 35 + 5)
+        qBtn.BackgroundColor3 = Colors.Button
+        qBtn.Text = "⚡ " .. pName
+        qBtn.TextColor3 = Colors.Text
+        qBtn.Font = Enum.Font.GothamBold
+        qBtn.TextSize = 10
+        qBtn.Parent = quickList
+        qBtn.MouseButton1Click:Connect(function() 
+            TeleportToPlayer(pName) 
+        end)
+    end
+    
     local serverLabel = Instance.new("TextLabel")
     serverLabel.Size = UDim2.new(0.9, 0, 0, 20)
-    serverLabel.Position = UDim2.new(0.05, 0, 0, 110)
+    serverLabel.Position = UDim2.new(0.05, 0, 0, 245)
     serverLabel.BackgroundColor3 = Colors.TitleBar
     serverLabel.Text = "👥 ИГРОКИ НА СЕРВЕРЕ:"
     serverLabel.TextColor3 = Colors.Text
@@ -792,8 +923,8 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     serverLabel.Parent = frame
     
     local serverList = Instance.new("ScrollingFrame")
-    serverList.Size = UDim2.new(0.9, 0, 0, 220)
-    serverList.Position = UDim2.new(0.05, 0, 0, 135)
+    serverList.Size = UDim2.new(0.9, 0, 0, 90)
+    serverList.Position = UDim2.new(0.05, 0, 0, 270)
     serverList.BackgroundColor3 = Colors.ScrollBg
     serverList.ScrollBarThickness = 5
     serverList.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -821,7 +952,7 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
 end)
 
 CreateButton("🎮", "ИГРЫ", function()
-    local frame = CreateWindow("🎮 ИГРЫ", 250, 150)
+    local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 250, 150)
     
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.9, 0, 0, 40)
@@ -835,7 +966,7 @@ CreateButton("🎮", "ИГРЫ", function()
 end)
 
 CreateButton("⚙️", "НАСТРОЙКИ", function()
-    local frame = CreateWindow("⚙️ НАСТРОЙКИ КЛАВИШ", 300, 300)
+    local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ КЛАВИШ", 300, 300)
     
     local names = {
         HideGUI = "👁️ Скрыть", 
@@ -845,10 +976,11 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
         CopyCoords = "📋 Координаты", 
         ESP = "🔴 ESP",
         AutoClicker = "🖱️ Автокликер",
-        AutoClickerSpeed = "⚡ Скорость кликера"
+        AutoClickerSpeed = "⚡ Скорость кликера",
+        FlySpeedWindow = "✈️ Скорость полёта"
     }
     
-    local y = 40
+    local y = 45
     for key, display in pairs(names) do
         local lbl = Instance.new("TextLabel")
         lbl.Size = UDim2.new(0.5, 0, 0, 30)
@@ -921,17 +1053,8 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode == Keys.Noclip then ToggleNoclip() end
     if input.KeyCode == Keys.ESP then ToggleESP() end
     if input.KeyCode == Keys.AutoClicker then ToggleAutoClicker() end
-    if input.KeyCode == Keys.AutoClickerSpeed then OpenAutoClickerSpeedSettings() end
-    
-    if input.KeyCode == Enum.KeyCode.KeypadPeriod then
-        FlySettings.Speed = IncreaseFlySpeed()
-        print("Скорость полёта: " .. FlySettings.Speed)
-    end
-    
-    if input.KeyCode == Enum.KeyCode.KeypadMinus then
-        FlySettings.Speed = DecreaseFlySpeed()
-        print("Скорость полёта: " .. FlySettings.Speed)
-    end
+    if input.KeyCode == Keys.AutoClickerSpeed then OpenAutoClickerSpeedWindow() end
+    if input.KeyCode == Keys.FlySpeedWindow then OpenFlySpeedWindow() end
     
     if input.KeyCode == Keys.TPMouse then
         local char = getCharacter()
