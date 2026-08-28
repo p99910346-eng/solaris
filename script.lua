@@ -1,4 +1,4 @@
--- Solaris GUI v9.2 (Fixed GUI Display)
+-- Solaris GUI v9.4 (Clean GUI + Games)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "9.2"
+local Version = "9.4"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -35,15 +35,6 @@ local QuickPlayers = {
     "Wr_White",
     "pasha999938",
     "Dfgvmg2"
-}
-
-local Keys = {
-    HideGUI = Enum.KeyCode.RightShift,
-    Fly = Enum.KeyCode.KeypadZero,
-    Noclip = Enum.KeyCode.N,
-    TPMouse = Enum.KeyCode.V,
-    CopyCoords = Enum.KeyCode.C,
-    ESP = Enum.KeyCode.X,
 }
 
 local Colors = {
@@ -152,7 +143,7 @@ end
 -- Главный фрейм
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 280, 0, 280)
+MainFrame.Size = UDim2.new(0, 280, 0, 270)
 MainFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
@@ -199,23 +190,6 @@ CloseButton.MouseButton1Click:Connect(function()
     if ScannerConnection then ScannerConnection:Disconnect() end
     ScreenGui:Destroy()
 end)
-
--- Информационная панель
-local InfoPanel = Instance.new("Frame")
-InfoPanel.Size = UDim2.new(0.9, 0, 0, 60)
-InfoPanel.Position = UDim2.new(0.05, 0, 0, 45)
-InfoPanel.BackgroundColor3 = Colors.ScrollBg
-InfoPanel.Parent = MainFrame
-
-local InfoLabel = Instance.new("TextLabel")
-InfoLabel.Size = UDim2.new(1, 0, 1, 0)
-InfoLabel.BackgroundTransparency = 1
-InfoLabel.Text = "КЛАВИШИ:\n0 - Полёт | . - Скорость+\nX - ESP | N - Ноклип"
-InfoLabel.TextColor3 = Colors.Text
-InfoLabel.Font = Enum.Font.Gotham
-InfoLabel.TextSize = 10
-InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
-InfoLabel.Parent = InfoPanel
 
 local function SmoothTP(targetCFrame)
     local char = getCharacter()
@@ -462,7 +436,7 @@ local function ToggleESP()
     end
 end
 
-local yPos = 110
+local yPos = 45
 
 local function CreateButton(emoji, text, callback)
     local Button = Instance.new("TextButton")
@@ -945,6 +919,24 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 5)
 end)
 
+CreateButton("🎮", "ИГРЫ", function()
+    local frame = CreateWindow("🎮 ИГРЫ", 250, 150, 100)
+    
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = UDim2.new(0.05, 0, 0, 45)
+    btn.BackgroundColor3 = Colors.Button
+    btn.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
+    btn.TextColor3 = Colors.Text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
+    btn.Parent = frame
+    
+    btn.MouseButton1Click:Connect(function()
+        game:GetService("TeleportService"):Teleport(1234567890, LocalPlayer)
+    end)
+end)
+
 LocalPlayer.CharacterAdded:Connect(function(char)
     if SpawnPoint then
         wait(0.5)
@@ -964,7 +956,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
     
     KeyCooldown[input.KeyCode] = tick()
     
-    if input.KeyCode == Keys.HideGUI then
+    if input.KeyCode == Enum.KeyCode.RightShift then
         GUIHidden = not GUIHidden
         for _, child in ipairs(ScreenGui:GetChildren()) do
             if child:IsA("Frame") then 
@@ -1056,5 +1048,3 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function()
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
-print("GUI должен отображаться!")
-print("Клавиши: 0 - Полёт, . - Скорость+, N - Ноклип, X - ESP")
