@@ -1,4 +1,4 @@
--- Solaris GUI v13.3 (All Fixed)
+-- Solaris GUI v13.4 (Microwave Selection Added)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -10,7 +10,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "13.3"
+local Version = "13.4"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -582,13 +582,20 @@ local function OpenFarmGUI()
     end)
 end
 
--- Функция создания GUI авто готовки
+-- Функция создания GUI авто готовки (с выбором микроволновки)
 local function OpenAutoCookGUI()
     if CoreGui:FindFirstChild("DraggableMicrowaveFarm") then
         CoreGui.DraggableMicrowaveFarm:Destroy()
     end
     
-    local microwavePosition = Vector3.new(-181, 5, 18)
+    local microwavePositions = {
+        {name = "Микроволновка 1", pos = Vector3.new(-181, 5, 18)},
+        {name = "Микроволновка 2", pos = Vector3.new(-162, 5, -9)},
+        {name = "Микроволновка 3", pos = Vector3.new(-186, 5, -9)},
+        {name = "Микроволновка 4", pos = Vector3.new(-185, 5, 8)}
+    }
+    
+    local selectedMicrowave = microwavePositions[1]
     local cookingTime = 15
     local isFarming = false
     local firstRun = true
@@ -601,18 +608,21 @@ local function OpenAutoCookGUI()
     local TimeInput = Instance.new("TextBox")
     local TimeLabel = Instance.new("TextLabel")
     local InfoLabel = Instance.new("TextLabel")
+    local MicrowaveLabel = Instance.new("TextLabel")
+    local MicrowaveSelect = Instance.new("TextButton")
     local UICorner = Instance.new("UICorner")
     local TopCorner = Instance.new("UICorner")
     local ButtonCorner = Instance.new("UICorner")
     local InputCorner = Instance.new("UICorner")
+    local SelectCorner = Instance.new("UICorner")
     
     CookScreenGui.Parent = CoreGui
     CookScreenGui.Name = "DraggableMicrowaveFarm"
     
     CookFrame.Parent = CookScreenGui
     CookFrame.BackgroundColor3 = Colors.Frame
-    CookFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
-    CookFrame.Size = UDim2.new(0, 220, 0, 170)
+    CookFrame.Position = UDim2.new(0.05, 0, 0.35, 0)
+    CookFrame.Size = UDim2.new(0, 220, 0, 210)
     CookFrame.Active = true
     
     UICorner.CornerRadius = UDim.new(0, 10)
@@ -638,9 +648,31 @@ local function OpenAutoCookGUI()
     CloseButton.Font = Enum.Font.GothamBold
     CloseButton.TextSize = 10
     
+    MicrowaveLabel.Parent = CookFrame
+    MicrowaveLabel.BackgroundTransparency = 1
+    MicrowaveLabel.Position = UDim2.new(0.05, 0, 0.18, 0)
+    MicrowaveLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    MicrowaveLabel.Font = Enum.Font.Gotham
+    MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
+    MicrowaveLabel.TextColor3 = Colors.Text
+    MicrowaveLabel.TextSize = 10
+    MicrowaveLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    MicrowaveSelect.Parent = CookFrame
+    MicrowaveSelect.BackgroundColor3 = Colors.Button
+    MicrowaveSelect.Position = UDim2.new(0.05, 0, 0.28, 0)
+    MicrowaveSelect.Size = UDim2.new(0.9, 0, 0, 28)
+    MicrowaveSelect.Font = Enum.Font.GothamBold
+    MicrowaveSelect.Text = "🔄 СМЕНИТЬ"
+    MicrowaveSelect.TextColor3 = Colors.Text
+    MicrowaveSelect.TextSize = 10
+    
+    SelectCorner.CornerRadius = UDim.new(0, 6)
+    SelectCorner.Parent = MicrowaveSelect
+    
     TimeLabel.Parent = CookFrame
     TimeLabel.BackgroundTransparency = 1
-    TimeLabel.Position = UDim2.new(0.05, 0, 0.22, 0)
+    TimeLabel.Position = UDim2.new(0.05, 0, 0.45, 0)
     TimeLabel.Size = UDim2.new(0, 100, 0, 25)
     TimeLabel.Font = Enum.Font.Gotham
     TimeLabel.Text = "Время готовки:"
@@ -650,7 +682,7 @@ local function OpenAutoCookGUI()
     
     TimeInput.Parent = CookFrame
     TimeInput.BackgroundColor3 = Colors.Input
-    TimeInput.Position = UDim2.new(0.6, 0, 0.22, 0)
+    TimeInput.Position = UDim2.new(0.6, 0, 0.45, 0)
     TimeInput.Size = UDim2.new(0, 70, 0, 25)
     TimeInput.Font = Enum.Font.GothamBold
     TimeInput.Text = tostring(cookingTime)
@@ -663,7 +695,7 @@ local function OpenAutoCookGUI()
     
     ToggleButton.Parent = CookFrame
     ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-    ToggleButton.Position = UDim2.new(0.05, 0, 0.42, 0)
+    ToggleButton.Position = UDim2.new(0.05, 0, 0.62, 0)
     ToggleButton.Size = UDim2.new(0.9, 0, 0, 40)
     ToggleButton.Font = Enum.Font.GothamBold
     ToggleButton.Text = "Авто-готовка: ВЫКЛ"
@@ -675,15 +707,25 @@ local function OpenAutoCookGUI()
     
     InfoLabel.Parent = CookFrame
     InfoLabel.BackgroundTransparency = 1
-    InfoLabel.Position = UDim2.new(0.05, 0, 0.7, 0)
-    InfoLabel.Size = UDim2.new(0.9, 0, 0, 40)
+    InfoLabel.Position = UDim2.new(0.05, 0, 0.85, 0)
+    InfoLabel.Size = UDim2.new(0.9, 0, 0, 25)
     InfoLabel.Font = Enum.Font.Gotham
-    InfoLabel.Text = "Статус: Ожидание\nПрогресс: 0 / 0 сек"
+    InfoLabel.Text = "Статус: Ожидание"
     InfoLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
-    InfoLabel.TextSize = 10
+    InfoLabel.TextSize = 9
     InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
     
     MakeDraggable(CookFrame, TopBar)
+    
+    local currentMicrowaveIndex = 1
+    MicrowaveSelect.MouseButton1Click:Connect(function()
+        currentMicrowaveIndex = currentMicrowaveIndex + 1
+        if currentMicrowaveIndex > #microwavePositions then
+            currentMicrowaveIndex = 1
+        end
+        selectedMicrowave = microwavePositions[currentMicrowaveIndex]
+        MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
+    end)
     
     TimeInput.FocusLost:Connect(function()
         local num = tonumber(TimeInput.Text)
@@ -724,10 +766,10 @@ local function OpenAutoCookGUI()
                 local rootPart = char:WaitForChild("HumanoidRootPart")
                 
                 local currentSavedPos = getStraightLook(rootPart.CFrame)
-                local targetCFrame = getStraightLook(CFrame.new(microwavePosition))
+                local targetCFrame = getStraightLook(CFrame.new(selectedMicrowave.pos))
                 
                 if firstRun then
-                    InfoLabel.Text = "Статус: Запуск...\nПрогресс: Настройка"
+                    InfoLabel.Text = "Статус: Запуск..."
                     rootPart.CFrame = targetCFrame
                     task.wait(0.5)
                     
@@ -744,15 +786,14 @@ local function OpenAutoCookGUI()
                 for i = cookingTime, 1, -1 do
                     if not isFarming then break end
                     ToggleButton.Text = "Печётся: " .. i .. "с"
-                    local elapsed = cookingTime - i
-                    InfoLabel.Text = "Статус: Выпекание\nПрогресс: " .. elapsed .. " / " .. cookingTime .. " сек"
+                    InfoLabel.Text = "Статус: Выпекание " .. i .. "/" .. cookingTime
                     task.wait(1)
                 end
                 
                 if isFarming and not firstRun then
                     local loopSavedPos = getStraightLook(rootPart.CFrame)
                     
-                    InfoLabel.Text = "Статус: Обновление...\nПрогресс: Перезапуск"
+                    InfoLabel.Text = "Статус: Обновление..."
                     rootPart.CFrame = targetCFrame
                     task.wait(0.5)
                     
@@ -781,7 +822,7 @@ local function OpenAutoCookGUI()
             firstRun = true
             ToggleButton.Text = "Авто-готовка: ВЫКЛ"
             ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-            InfoLabel.Text = "Статус: Отключено\nПрогресс: 0 / 0 сек"
+            InfoLabel.Text = "Статус: Отключено"
         end
     end)
 end
@@ -1424,4 +1465,4 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
-print("Все функции работают!")
+print("Авто готовка с выбором микроволновки!")
