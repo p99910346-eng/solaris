@@ -1,4 +1,4 @@
--- Solaris GUI v11.3 (New Aimbot + ESP)
+-- Solaris GUI v11.7 (Games Menu with Named Teleports)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -10,7 +10,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "11.3"
+local Version = "11.7"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -22,7 +22,6 @@ local NoclipConnection = nil
 local ESPConnection = nil
 local ScannerConnection = nil
 local AutoClickerConnection = nil
-local AimbotConnection = nil
 
 local KeyCooldown = {}
 
@@ -38,11 +37,19 @@ local AutoClickerSettings = {
     MaxSpeed = 50,
 }
 
--- Новые настройки аимбота
 local AimTarget = "Head"
 local AimKey = Enum.UserInputType.MouseButton2
 local IgnoredTeamColor = "None"
 local IsAiming = false
+
+local FarmPoints = {
+    {name = "Каналы", pos = Vector3.new(-244, -23, -1349)},
+    {name = "Пляж", pos = Vector3.new(-157, 4, -154)},
+    {name = "Завод", pos = Vector3.new(-276, 4, 215)},
+    {name = "Чинила", pos = Vector3.new(-270, 3, 44)},
+    {name = "Продажа", pos = Vector3.new(-175, 4, 45)},
+    {name = "Ресторан", pos = Vector3.new(-161, 5, 5)}
+}
 
 local QuickPlayers = {
     "Dfgvmg456",
@@ -168,7 +175,7 @@ local function CreateWindow(windowName, title, width, height)
 end
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 260, 0, 250)
+MainFrame.Size = UDim2.new(0, 260, 0, 290)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
@@ -319,7 +326,6 @@ local function ToggleNoclip()
     end
 end
 
--- Улучшенный ESP (как в скрипте)
 local function applyESP(player)
     if player == LocalPlayer then return end
     
@@ -399,7 +405,6 @@ local function ToggleAutoClicker()
     end
 end
 
--- Новый аимбот (как в скрипте)
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -974,6 +979,53 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 3)
 end)
 
+CreateButton("🎮", "ИГРЫ", function()
+    local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 260, 160)
+    
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = UDim2.new(0.05, 0, 0, 45)
+    btn.BackgroundColor3 = Colors.Button
+    btn.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
+    btn.TextColor3 = Colors.Text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
+    btn.Parent = frame
+    
+    btn.MouseButton1Click:Connect(function()
+        local tpFrame = CreateWindow("SurvivalWindow", "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ", 300, 300)
+        
+        local tpLabel = Instance.new("TextLabel")
+        tpLabel.Size = UDim2.new(0.9, 0, 0, 25)
+        tpLabel.Position = UDim2.new(0.05, 0, 0, 40)
+        tpLabel.BackgroundColor3 = Colors.TitleBar
+        tpLabel.Text = "📍 ТЕЛЕПОРТЫ:"
+        tpLabel.TextColor3 = Colors.Text
+        tpLabel.Font = Enum.Font.GothamBold
+        tpLabel.TextSize = 10
+        tpLabel.Parent = tpFrame
+        
+        local tpY = 70
+        for i, point in ipairs(FarmPoints) do
+            local tpBtn = Instance.new("TextButton")
+            tpBtn.Size = UDim2.new(0.9, 0, 0, 32)
+            tpBtn.Position = UDim2.new(0.05, 0, 0, tpY)
+            tpBtn.BackgroundColor3 = Colors.Button
+            tpBtn.Text = "📍 " .. point.name
+            tpBtn.TextColor3 = Colors.Text
+            tpBtn.Font = Enum.Font.GothamBold
+            tpBtn.TextSize = 11
+            tpBtn.Parent = tpFrame
+            
+            tpBtn.MouseButton1Click:Connect(function()
+                SmoothTP(CFrame.new(point.pos))
+            end)
+            
+            tpY += 37
+        end
+    end)
+end)
+
 CreateButton("⚙️", "НАСТРОЙКИ", function()
     local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ", 300, 370)
     
@@ -1029,7 +1081,6 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
     end
 end)
 
--- Обработка аимбота
 UserInputService.InputBegan:Connect(function(input)
     if input.UserInputType == AimKey then
         IsAiming = true
@@ -1148,5 +1199,3 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
-print("Аимбот: B - вкл/выкл, ПКМ - наведение")
-print("ESP: X - вкл/выкл")
