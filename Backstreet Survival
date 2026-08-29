@@ -1,4 +1,4 @@
--- Выживание на задних улицах (полный скрипт для загрузки по ссылке)
+-- Выживание на задних улицах (полный скрипт)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -54,7 +54,10 @@ local FarmPoints = {
     {name = "Завод", pos = Vector3.new(-276, 4, 215)},
     {name = "Чинила", pos = Vector3.new(-270, 3, 44)},
     {name = "Продажа", pos = Vector3.new(-175, 4, 45)},
-    {name = "Ресторан", pos = Vector3.new(-161, 5, 5)}
+    {name = "Ресторан", pos = Vector3.new(-161, 5, 5)},
+    {name = "Продажа 1", pos = Vector3.new(-207, 5, -39)},
+    {name = "Продажа 2", pos = Vector3.new(-207, 5, -84)},
+    {name = "Магазин", pos = Vector3.new(-267, 13, 81)}
 }
 
 -- ФАРМ ЗАВОДА
@@ -502,6 +505,87 @@ local function OpenLaptopGUI()
     end)
 end
 
+-- ПРОДАТЬ
+local function OpenSellGUI()
+    if CoreGui:FindFirstChild("CustomFactoryFarmGui") then CoreGui.CustomFactoryFarmGui:Destroy() end
+    local targetPosition = Vector3.new(-173, 4, 47)
+    local clickX, clickY = 1546, 821
+    local isRunning = false
+    local SG = Instance.new("ScreenGui")
+    SG.Name = "CustomFactoryFarmGui"
+    SG.Parent = CoreGui
+    local Frame = Instance.new("Frame")
+    Frame.BackgroundColor3 = Colors.Frame
+    Frame.Position = UDim2.new(0.05, 0, 0.25, 0)
+    Frame.Size = UDim2.new(0, 200, 0, 95)
+    Frame.Active = true
+    Frame.Parent = SG
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 8)
+    UICorner.Parent = Frame
+    local TopBar = Instance.new("TextLabel")
+    TopBar.BackgroundColor3 = Colors.TitleBar
+    TopBar.Size = UDim2.new(1, 0, 0, 30)
+    TopBar.Text = "💰 Продать"
+    TopBar.TextColor3 = Colors.Text
+    TopBar.Font = Enum.Font.GothamBold
+    TopBar.TextSize = 11
+    TopBar.Parent = Frame
+    MakeDraggable(Frame, TopBar)
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 22, 0, 22)
+    CloseBtn.Position = UDim2.new(1, -27, 0, 4)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+    CloseBtn.Text = "✕"
+    CloseBtn.TextColor3 = Colors.Text
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 10
+    CloseBtn.Parent = TopBar
+    local StartBtn = Instance.new("TextButton")
+    StartBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+    StartBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+    StartBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    StartBtn.Font = Enum.Font.GothamBold
+    StartBtn.Text = "ПРОДАТЬ"
+    StartBtn.TextColor3 = Colors.Text
+    StartBtn.TextSize = 12
+    StartBtn.Parent = Frame
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 6)
+    BtnCorner.Parent = StartBtn
+    CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.1)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    local function preciseMouseClick(x, y)
+        VirtualInputManager:SendMouseMoveEvent(x, y, game)
+        task.wait(0.15)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        task.wait(0.08)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    end
+    StartBtn.MouseButton1Click:Connect(function()
+        if isRunning then return end
+        isRunning = true
+        StartBtn.Text = "Выполнение..."
+        local char = getCharacter()
+        local rootPart = char:WaitForChild("HumanoidRootPart")
+        local savedPosition = rootPart.CFrame
+        local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+        rootPart.CFrame = targetLook
+        task.wait(0.3)
+        simulateKeyPressE()
+        task.wait(1.0)
+        preciseMouseClick(clickX, clickY)
+        task.wait(0.8)
+        rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+        StartBtn.Text = "ПРОДАТЬ"
+        isRunning = false
+    end)
+end
+
 -- ГЛАВНОЕ МЕНЮ
 local SG = Instance.new("ScreenGui")
 SG.Name = "SurvivalMenu"
@@ -509,8 +593,8 @@ SG.ResetOnSpawn = false
 SG.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 300, 0, 250)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
+MainFrame.Size = UDim2.new(0, 300, 0, 290)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -145)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = SG
@@ -556,10 +640,9 @@ local function CreateMenuButton(text, yPos, callback)
 end
 
 CreateMenuButton("📍 ТЕЛЕПОРТЫ", 45, function()
-    -- Окно телепортов
     local tpWindow = Instance.new("Frame")
-    tpWindow.Size = UDim2.new(0, 220, 0, 280)
-    tpWindow.Position = UDim2.new(0.7, 0, 0.3, 0)
+    tpWindow.Size = UDim2.new(0, 220, 0, 370)
+    tpWindow.Position = UDim2.new(0.7, 0, 0.25, 0)
     tpWindow.BackgroundColor3 = Colors.Frame
     tpWindow.BorderSizePixel = 0
     tpWindow.Parent = SG
@@ -622,4 +705,9 @@ CreateMenuButton("💻 НОУТ У ЧИНИЛЫ", 165, function()
     OpenLaptopGUI()
 end)
 
+CreateMenuButton("💰 ПРОДАТЬ", 205, function()
+    OpenSellGUI()
+end)
+
 print("Выживание на задних улицах загружено!")
+print("Телепортов: " .. #FarmPoints)
