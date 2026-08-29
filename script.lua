@@ -1,16 +1,15 @@
--- Solaris GUI v13.4 (Microwave Selection Added)
+-- Solaris GUI v15.7 (Load Ship by Link)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local CoreGui = game:GetService("CoreGui")
 
 local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "13.4"
+local Version = "15.7"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -24,35 +23,10 @@ local AutoClickerConnection = nil
 
 local KeyCooldown = {}
 
-local FlySettings = {
-    Speed = 50,
-    MinSpeed = 10,
-    MaxSpeed = 500,
-}
+local FlySettings = {Speed = 50, MinSpeed = 10, MaxSpeed = 500}
+local AutoClickerSettings = {Speed = 10, MinSpeed = 1, MaxSpeed = 50}
 
-local AutoClickerSettings = {
-    Speed = 10,
-    MinSpeed = 1,
-    MaxSpeed = 50,
-}
-
-local FarmPoints = {
-    {name = "Каналы", pos = Vector3.new(-244, -23, -1349)},
-    {name = "Пляж", pos = Vector3.new(-157, 4, -154)},
-    {name = "Завод", pos = Vector3.new(-276, 4, 215)},
-    {name = "Чинила", pos = Vector3.new(-270, 3, 44)},
-    {name = "Продажа", pos = Vector3.new(-175, 4, 45)},
-    {name = "Ресторан", pos = Vector3.new(-161, 5, 5)}
-}
-
-local QuickPlayers = {
-    "Dfgvmg456",
-    "minti",
-    "pro_GREEN001",
-    "Wr_White",
-    "pasha999938",
-    "Dfgvmg2"
-}
+local QuickPlayers = {"Dfgvmg456", "minti", "pro_GREEN001", "Wr_White", "pasha999938", "Dfgvmg2"}
 
 local Keys = {
     HideGUI = Enum.KeyCode.RightShift,
@@ -88,19 +62,14 @@ local OpenWindows = {}
 
 local function isMouseOverGUI()
     local mousePos = UserInputService:GetMouseLocation()
-    
     for _, child in ipairs(ScreenGui:GetChildren()) do
         if child:IsA("Frame") and child.Visible then
             local guiPos = child.AbsolutePosition
             local guiSize = child.AbsoluteSize
-            
             if mousePos.X >= guiPos.X and mousePos.X <= guiPos.X + guiSize.X and
-               mousePos.Y >= guiPos.Y and mousePos.Y <= guiPos.Y + guiSize.Y then
-                return true
-            end
+               mousePos.Y >= guiPos.Y and mousePos.Y <= guiPos.Y + guiSize.Y then return true end
         end
     end
-    
     return false
 end
 
@@ -108,7 +77,6 @@ local function MakeDraggable(frame, titleBar)
     local isDragging = false
     local dragStart = nil
     local frameStart = nil
-    
     titleBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             isDragging = true
@@ -116,23 +84,14 @@ local function MakeDraggable(frame, titleBar)
             frameStart = frame.Position
         end
     end)
-    
     UserInputService.InputChanged:Connect(function(input)
         if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement and dragStart and frameStart then
             local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
-                frameStart.X.Scale, 
-                frameStart.X.Offset + delta.X, 
-                frameStart.Y.Scale, 
-                frameStart.Y.Offset + delta.Y
-            )
+            frame.Position = UDim2.new(frameStart.X.Scale, frameStart.X.Offset + delta.X, frameStart.Y.Scale, frameStart.Y.Offset + delta.Y)
         end
     end)
-    
     UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            isDragging = false
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then isDragging = false end
     end)
 end
 
@@ -141,7 +100,6 @@ local function CreateWindow(windowName, title, width, height)
         OpenWindows[windowName]:Destroy()
         OpenWindows[windowName] = nil
     end
-    
     local frame = Instance.new("Frame")
     frame.Name = windowName
     frame.Size = UDim2.new(0, width, 0, height)
@@ -149,11 +107,9 @@ local function CreateWindow(windowName, title, width, height)
     frame.BackgroundColor3 = Colors.Frame
     frame.BorderSizePixel = 0
     frame.Parent = ScreenGui
-    
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = frame
-    
     local titleBar = Instance.new("TextLabel")
     titleBar.Size = UDim2.new(1, 0, 0, 30)
     titleBar.BackgroundColor3 = Colors.TitleBar
@@ -162,9 +118,7 @@ local function CreateWindow(windowName, title, width, height)
     titleBar.Font = Enum.Font.GothamBold
     titleBar.TextSize = 11
     titleBar.Parent = frame
-    
     MakeDraggable(frame, titleBar)
-    
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 22, 0, 22)
     closeBtn.Position = UDim2.new(1, -27, 0, 4)
@@ -174,12 +128,10 @@ local function CreateWindow(windowName, title, width, height)
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 10
     closeBtn.Parent = titleBar
-    
     closeBtn.MouseButton1Click:Connect(function()
         OpenWindows[windowName] = nil
         frame:Destroy()
     end)
-    
     OpenWindows[windowName] = frame
     return frame
 end
@@ -218,12 +170,13 @@ CloseButton.TextSize = 10
 CloseButton.Parent = TitleBar
 
 CloseButton.MouseButton1Click:Connect(function()
-    if FlyConnection then FlyConnection:Disconnect() end
-    if NoclipConnection then NoclipConnection:Disconnect() end
-    if ESPConnection then ESPConnection:Disconnect() end
-    if ScannerConnection then ScannerConnection:Disconnect() end
-    if AutoClickerConnection then AutoClickerConnection:Disconnect() end
-    ScreenGui:Destroy()
+    if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil FlyEnabled = false end
+    if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil NoclipEnabled = false end
+    if ESPConnection then ESPConnection:Disconnect() ESPConnection = nil ESPEnabled = false end
+    if ScannerConnection then ScannerConnection:Disconnect() ScannerConnection = nil end
+    if AutoClickerConnection then AutoClickerConnection:Disconnect() AutoClickerConnection = nil AutoClickerEnabled = false end
+    MainFrame.Visible = false
+    GUIHidden = true
 end)
 
 local function SmoothTP(targetCFrame)
@@ -244,42 +197,22 @@ end
 
 local function ToggleFly()
     FlyEnabled = not FlyEnabled
-    
     if FlyEnabled then
         if FlyConnection then FlyConnection:Disconnect() end
-        
         FlyConnection = RunService.RenderStepped:Connect(function()
             local char = getCharacter()
             local humanoid = char and char:FindFirstChild("Humanoid")
             local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-            
             if not humanoid or not rootPart then return end
-            
             humanoid.PlatformStand = true
-            
             local camera = workspace.CurrentCamera
             local moveDirection = Vector3.zero
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then 
-                moveDirection += camera.CFrame.LookVector 
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then 
-                moveDirection -= camera.CFrame.LookVector 
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then 
-                moveDirection -= camera.CFrame.RightVector 
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then 
-                moveDirection += camera.CFrame.RightVector 
-            end
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then 
-                moveDirection += Vector3.new(0, 1, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then 
-                moveDirection -= Vector3.new(0, 1, 0)
-            end
-            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection -= Vector3.new(0, 1, 0) end
             if moveDirection.Magnitude > 0 then
                 moveDirection = moveDirection.Unit
                 rootPart.Velocity = moveDirection * FlySettings.Speed
@@ -289,19 +222,11 @@ local function ToggleFly()
                 rootPart.AssemblyLinearVelocity = Vector3.zero
             end
         end)
-        
-        print("Полёт включён! Скорость: " .. FlySettings.Speed)
+        print("Полёт включён!")
     else
-        if FlyConnection then 
-            FlyConnection:Disconnect() 
-            FlyConnection = nil 
-        end
-        
+        if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
         local char = getCharacter()
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.PlatformStand = false
-        end
-        
+        if char and char:FindFirstChild("Humanoid") then char.Humanoid.PlatformStand = false end
         print("Полёт выключен!")
     end
 end
@@ -314,24 +239,17 @@ local function ToggleNoclip()
             local char = getCharacter()
             if char then
                 for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then 
-                        part.CanCollide = false 
-                    end
+                    if part:IsA("BasePart") then part.CanCollide = false end
                 end
             end
         end)
         print("Ноклип включён!")
     else
-        if NoclipConnection then 
-            NoclipConnection:Disconnect() 
-            NoclipConnection = nil 
-        end
+        if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end
         local char = getCharacter()
         if char then
             for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then 
-                    part.CanCollide = true 
-                end
+                if part:IsA("BasePart") then part.CanCollide = true end
             end
         end
         print("Ноклип выключен!")
@@ -340,18 +258,14 @@ end
 
 local function applyESP(player)
     if player == LocalPlayer then return end
-    
     local function setupHighlight(character)
         if not character then return end
-        
         local oldHighlight = character:FindFirstChild("DeltaESP")
         if oldHighlight then oldHighlight:Destroy() end
-        
         local highlight = Instance.new("Highlight")
         highlight.Name = "DeltaESP"
         highlight.FillTransparency = 0.4
         highlight.OutlineTransparency = 0.1
-        
         if player.Team then
             highlight.FillColor = player.Team.TeamColor.Color
             highlight.OutlineColor = player.Team.TeamColor.Color
@@ -359,10 +273,8 @@ local function applyESP(player)
             highlight.FillColor = Color3.fromRGB(0, 255, 150)
             highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
         end
-        
         highlight.Parent = character
     end
-
     setupHighlight(player.Character)
     player.CharacterAdded:Connect(function(char)
         task.wait(0.2)
@@ -372,11 +284,8 @@ end
 
 local function ToggleESP()
     ESPEnabled = not ESPEnabled
-    
     if ESPEnabled then
-        for _, player in ipairs(Players:GetPlayers()) do
-            applyESP(player)
-        end
+        for _, player in ipairs(Players:GetPlayers()) do applyESP(player) end
         print("ESP включён!")
     else
         for _, player in ipairs(Players:GetPlayers()) do
@@ -391,15 +300,12 @@ end
 
 local function ToggleAutoClicker()
     AutoClickerEnabled = not AutoClickerEnabled
-    
     if AutoClickerEnabled then
         if AutoClickerConnection then AutoClickerConnection:Disconnect() end
-        
         local lastClick = 0
         AutoClickerConnection = RunService.RenderStepped:Connect(function(deltaTime)
             lastClick += deltaTime
             local delay = 1 / AutoClickerSettings.Speed
-            
             if lastClick >= delay then
                 if not isMouseOverGUI() then
                     lastClick = 0
@@ -408,20 +314,15 @@ local function ToggleAutoClicker()
                 end
             end
         end)
-        
-        print("Автокликер включён! Скорость: " .. AutoClickerSettings.Speed .. " кликов/сек")
+        print("Автокликер включён!")
     else
-        if AutoClickerConnection then 
-            AutoClickerConnection:Disconnect() 
-            AutoClickerConnection = nil 
-        end
+        if AutoClickerConnection then AutoClickerConnection:Disconnect() AutoClickerConnection = nil end
         print("Автокликер выключен!")
     end
 end
 
 local function OpenAutoClickerSpeedWindow()
     local frame = CreateWindow("AutoClickerSpeedWindow", "⚡ СКОРОСТЬ КЛИКЕРА", 280, 200)
-    
     local speedLabel = Instance.new("TextLabel")
     speedLabel.Size = UDim2.new(0.9, 0, 0, 35)
     speedLabel.Position = UDim2.new(0.05, 0, 0, 40)
@@ -431,7 +332,6 @@ local function OpenAutoClickerSpeedWindow()
     speedLabel.Font = Enum.Font.GothamBold
     speedLabel.TextSize = 12
     speedLabel.Parent = frame
-    
     local speedInput = Instance.new("TextBox")
     speedInput.Size = UDim2.new(0.9, 0, 0, 30)
     speedInput.Position = UDim2.new(0.05, 0, 0, 80)
@@ -442,7 +342,6 @@ local function OpenAutoClickerSpeedWindow()
     speedInput.Font = Enum.Font.Gotham
     speedInput.TextSize = 11
     speedInput.Parent = frame
-    
     local applyBtn = Instance.new("TextButton")
     applyBtn.Size = UDim2.new(0.9, 0, 0, 30)
     applyBtn.Position = UDim2.new(0.05, 0, 0, 115)
@@ -452,377 +351,12 @@ local function OpenAutoClickerSpeedWindow()
     applyBtn.Font = Enum.Font.GothamBold
     applyBtn.TextSize = 11
     applyBtn.Parent = frame
-    
     applyBtn.MouseButton1Click:Connect(function()
         local newSpeed = tonumber(speedInput.Text)
         if newSpeed then
             AutoClickerSettings.Speed = math.clamp(newSpeed, AutoClickerSettings.MinSpeed, AutoClickerSettings.MaxSpeed)
             speedLabel.Text = "Скорость: " .. AutoClickerSettings.Speed .. "/сек"
             speedInput.Text = tostring(AutoClickerSettings.Speed)
-            print("Скорость автокликера: " .. AutoClickerSettings.Speed)
-        end
-    end)
-end
-
--- Функция создания GUI фарма завода
-local function OpenFarmGUI()
-    if CoreGui:FindFirstChild("LoopTwoPointsGui") then
-        CoreGui.LoopTwoPointsGui:Destroy()
-    end
-    
-    local Point1 = Vector3.new(-255, 4, 208)
-    local Point2 = Vector3.new(-281, 6, 242)
-    local isFarming = false
-    
-    local FarmScreenGui = Instance.new("ScreenGui")
-    local FarmFrame = Instance.new("Frame")
-    local TopBar = Instance.new("TextLabel")
-    local CloseButton = Instance.new("TextButton")
-    local ToggleButton = Instance.new("TextButton")
-    local UICorner = Instance.new("UICorner")
-    local TopCorner = Instance.new("UICorner")
-    local ButtonCorner = Instance.new("UICorner")
-    
-    FarmScreenGui.Parent = CoreGui
-    FarmScreenGui.Name = "LoopTwoPointsGui"
-    
-    FarmFrame.Parent = FarmScreenGui
-    FarmFrame.BackgroundColor3 = Colors.Frame
-    FarmFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
-    FarmFrame.Size = UDim2.new(0, 220, 0, 90)
-    FarmFrame.Active = true
-    
-    UICorner.CornerRadius = UDim.new(0, 10)
-    UICorner.Parent = FarmFrame
-    
-    TopBar.Parent = FarmFrame
-    TopBar.BackgroundColor3 = Colors.TitleBar
-    TopBar.Size = UDim2.new(1, 0, 0, 30)
-    TopBar.Text = "🤖 Фарм завод"
-    TopBar.TextColor3 = Colors.Text
-    TopBar.Font = Enum.Font.GothamBold
-    TopBar.TextSize = 11
-    
-    TopCorner.CornerRadius = UDim.new(0, 10)
-    TopCorner.Parent = TopBar
-    
-    CloseButton.Parent = TopBar
-    CloseButton.Size = UDim2.new(0, 22, 0, 22)
-    CloseButton.Position = UDim2.new(1, -27, 0, 4)
-    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
-    CloseButton.Text = "✕"
-    CloseButton.TextColor3 = Colors.Text
-    CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.TextSize = 10
-    
-    ToggleButton.Parent = FarmFrame
-    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-    ToggleButton.Position = UDim2.new(0.05, 0, 0.4, 0)
-    ToggleButton.Size = UDim2.new(0.9, 0, 0, 40)
-    ToggleButton.Font = Enum.Font.GothamBold
-    ToggleButton.Text = "Цикл: ВЫКЛ"
-    ToggleButton.TextColor3 = Colors.Text
-    ToggleButton.TextSize = 12
-    
-    ButtonCorner.CornerRadius = UDim.new(0, 6)
-    ButtonCorner.Parent = ToggleButton
-    
-    MakeDraggable(FarmFrame, TopBar)
-    
-    CloseButton.MouseButton1Click:Connect(function()
-        isFarming = false
-        FarmScreenGui:Destroy()
-    end)
-    
-    local function simulateKeyPressE()
-        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-        task.wait(0.15)
-        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-    end
-    
-    task.spawn(function()
-        while true do
-            task.wait(0.1)
-            if not FarmScreenGui or not FarmScreenGui.Parent then break end
-            
-            if isFarming then
-                local char = getCharacter()
-                local rootPart = char:WaitForChild("HumanoidRootPart")
-                
-                local lookAt1 = CFrame.lookAt(Point1, Point1 + Vector3.new(0, 0, -1))
-                rootPart.CFrame = lookAt1
-                task.wait(0.6)
-                
-                if isFarming then
-                    simulateKeyPressE()
-                    task.wait(0.6)
-                end
-                
-                local lookAt2 = CFrame.lookAt(Point2, Point2 + Vector3.new(0, 0, -1))
-                rootPart.CFrame = lookAt2
-                task.wait(0.6)
-                
-                if isFarming then
-                    simulateKeyPressE()
-                    task.wait(0.6)
-                end
-            end
-        end
-    end)
-    
-    ToggleButton.MouseButton1Click:Connect(function()
-        isFarming = not isFarming
-        if isFarming then
-            ToggleButton.Text = "Цикл: ВКЛ"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
-        else
-            ToggleButton.Text = "Цикл: ВЫКЛ"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-        end
-    end)
-end
-
--- Функция создания GUI авто готовки (с выбором микроволновки)
-local function OpenAutoCookGUI()
-    if CoreGui:FindFirstChild("DraggableMicrowaveFarm") then
-        CoreGui.DraggableMicrowaveFarm:Destroy()
-    end
-    
-    local microwavePositions = {
-        {name = "Микроволновка 1", pos = Vector3.new(-181, 5, 18)},
-        {name = "Микроволновка 2", pos = Vector3.new(-162, 5, -9)},
-        {name = "Микроволновка 3", pos = Vector3.new(-186, 5, -9)},
-        {name = "Микроволновка 4", pos = Vector3.new(-185, 5, 8)}
-    }
-    
-    local selectedMicrowave = microwavePositions[1]
-    local cookingTime = 15
-    local isFarming = false
-    local firstRun = true
-    
-    local CookScreenGui = Instance.new("ScreenGui")
-    local CookFrame = Instance.new("Frame")
-    local TopBar = Instance.new("TextLabel")
-    local CloseButton = Instance.new("TextButton")
-    local ToggleButton = Instance.new("TextButton")
-    local TimeInput = Instance.new("TextBox")
-    local TimeLabel = Instance.new("TextLabel")
-    local InfoLabel = Instance.new("TextLabel")
-    local MicrowaveLabel = Instance.new("TextLabel")
-    local MicrowaveSelect = Instance.new("TextButton")
-    local UICorner = Instance.new("UICorner")
-    local TopCorner = Instance.new("UICorner")
-    local ButtonCorner = Instance.new("UICorner")
-    local InputCorner = Instance.new("UICorner")
-    local SelectCorner = Instance.new("UICorner")
-    
-    CookScreenGui.Parent = CoreGui
-    CookScreenGui.Name = "DraggableMicrowaveFarm"
-    
-    CookFrame.Parent = CookScreenGui
-    CookFrame.BackgroundColor3 = Colors.Frame
-    CookFrame.Position = UDim2.new(0.05, 0, 0.35, 0)
-    CookFrame.Size = UDim2.new(0, 220, 0, 210)
-    CookFrame.Active = true
-    
-    UICorner.CornerRadius = UDim.new(0, 10)
-    UICorner.Parent = CookFrame
-    
-    TopBar.Parent = CookFrame
-    TopBar.BackgroundColor3 = Colors.TitleBar
-    TopBar.Size = UDim2.new(1, 0, 0, 30)
-    TopBar.Text = "🍳 Авто готовка"
-    TopBar.TextColor3 = Colors.Text
-    TopBar.Font = Enum.Font.GothamBold
-    TopBar.TextSize = 11
-    
-    TopCorner.CornerRadius = UDim.new(0, 10)
-    TopCorner.Parent = TopBar
-    
-    CloseButton.Parent = TopBar
-    CloseButton.Size = UDim2.new(0, 22, 0, 22)
-    CloseButton.Position = UDim2.new(1, -27, 0, 4)
-    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
-    CloseButton.Text = "✕"
-    CloseButton.TextColor3 = Colors.Text
-    CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.TextSize = 10
-    
-    MicrowaveLabel.Parent = CookFrame
-    MicrowaveLabel.BackgroundTransparency = 1
-    MicrowaveLabel.Position = UDim2.new(0.05, 0, 0.18, 0)
-    MicrowaveLabel.Size = UDim2.new(0.9, 0, 0, 20)
-    MicrowaveLabel.Font = Enum.Font.Gotham
-    MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
-    MicrowaveLabel.TextColor3 = Colors.Text
-    MicrowaveLabel.TextSize = 10
-    MicrowaveLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
-    MicrowaveSelect.Parent = CookFrame
-    MicrowaveSelect.BackgroundColor3 = Colors.Button
-    MicrowaveSelect.Position = UDim2.new(0.05, 0, 0.28, 0)
-    MicrowaveSelect.Size = UDim2.new(0.9, 0, 0, 28)
-    MicrowaveSelect.Font = Enum.Font.GothamBold
-    MicrowaveSelect.Text = "🔄 СМЕНИТЬ"
-    MicrowaveSelect.TextColor3 = Colors.Text
-    MicrowaveSelect.TextSize = 10
-    
-    SelectCorner.CornerRadius = UDim.new(0, 6)
-    SelectCorner.Parent = MicrowaveSelect
-    
-    TimeLabel.Parent = CookFrame
-    TimeLabel.BackgroundTransparency = 1
-    TimeLabel.Position = UDim2.new(0.05, 0, 0.45, 0)
-    TimeLabel.Size = UDim2.new(0, 100, 0, 25)
-    TimeLabel.Font = Enum.Font.Gotham
-    TimeLabel.Text = "Время готовки:"
-    TimeLabel.TextColor3 = Colors.Text
-    TimeLabel.TextSize = 11
-    TimeLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
-    TimeInput.Parent = CookFrame
-    TimeInput.BackgroundColor3 = Colors.Input
-    TimeInput.Position = UDim2.new(0.6, 0, 0.45, 0)
-    TimeInput.Size = UDim2.new(0, 70, 0, 25)
-    TimeInput.Font = Enum.Font.GothamBold
-    TimeInput.Text = tostring(cookingTime)
-    TimeInput.TextColor3 = Colors.Text
-    TimeInput.TextSize = 11
-    TimeInput.ClearTextOnFocus = false
-    
-    InputCorner.CornerRadius = UDim.new(0, 4)
-    InputCorner.Parent = TimeInput
-    
-    ToggleButton.Parent = CookFrame
-    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-    ToggleButton.Position = UDim2.new(0.05, 0, 0.62, 0)
-    ToggleButton.Size = UDim2.new(0.9, 0, 0, 40)
-    ToggleButton.Font = Enum.Font.GothamBold
-    ToggleButton.Text = "Авто-готовка: ВЫКЛ"
-    ToggleButton.TextColor3 = Colors.Text
-    ToggleButton.TextSize = 11
-    
-    ButtonCorner.CornerRadius = UDim.new(0, 6)
-    ButtonCorner.Parent = ToggleButton
-    
-    InfoLabel.Parent = CookFrame
-    InfoLabel.BackgroundTransparency = 1
-    InfoLabel.Position = UDim2.new(0.05, 0, 0.85, 0)
-    InfoLabel.Size = UDim2.new(0.9, 0, 0, 25)
-    InfoLabel.Font = Enum.Font.Gotham
-    InfoLabel.Text = "Статус: Ожидание"
-    InfoLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
-    InfoLabel.TextSize = 9
-    InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
-    
-    MakeDraggable(CookFrame, TopBar)
-    
-    local currentMicrowaveIndex = 1
-    MicrowaveSelect.MouseButton1Click:Connect(function()
-        currentMicrowaveIndex = currentMicrowaveIndex + 1
-        if currentMicrowaveIndex > #microwavePositions then
-            currentMicrowaveIndex = 1
-        end
-        selectedMicrowave = microwavePositions[currentMicrowaveIndex]
-        MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
-    end)
-    
-    TimeInput.FocusLost:Connect(function()
-        local num = tonumber(TimeInput.Text)
-        if num and num >= 0 then cookingTime = num else TimeInput.Text = tostring(cookingTime) end
-    end)
-    
-    CloseButton.MouseButton1Click:Connect(function()
-        isFarming = false
-        CookScreenGui:Destroy()
-    end)
-    
-    local function simulateKeyPressE()
-        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-        task.wait(0.1)
-        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-    end
-    
-    local function preciseMouseClick(x, y)
-        VirtualInputManager:SendMouseMoveEvent(x, y, game)
-        task.wait(0.12)
-        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-        task.wait(0.05)
-        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
-    end
-    
-    local function getStraightLook(cframe)
-        local x, y, z = cframe:ToEulerAnglesYXZ()
-        return CFrame.new(cframe.Position) * CFrame.fromEulerAnglesYXZ(0, y, 0)
-    end
-    
-    task.spawn(function()
-        while true do
-            task.wait(0.3)
-            if not CookScreenGui or not CookScreenGui.Parent then break end
-            
-            if isFarming then
-                local char = getCharacter()
-                local rootPart = char:WaitForChild("HumanoidRootPart")
-                
-                local currentSavedPos = getStraightLook(rootPart.CFrame)
-                local targetCFrame = getStraightLook(CFrame.new(selectedMicrowave.pos))
-                
-                if firstRun then
-                    InfoLabel.Text = "Статус: Запуск..."
-                    rootPart.CFrame = targetCFrame
-                    task.wait(0.5)
-                    
-                    simulateKeyPressE()
-                    task.wait(0.5)
-                    
-                    preciseMouseClick(1420, 533)
-                    task.wait(1.0)
-                    
-                    rootPart.CFrame = currentSavedPos * CFrame.new(0, 4, 0)
-                    firstRun = false
-                end
-                
-                for i = cookingTime, 1, -1 do
-                    if not isFarming then break end
-                    ToggleButton.Text = "Печётся: " .. i .. "с"
-                    InfoLabel.Text = "Статус: Выпекание " .. i .. "/" .. cookingTime
-                    task.wait(1)
-                end
-                
-                if isFarming and not firstRun then
-                    local loopSavedPos = getStraightLook(rootPart.CFrame)
-                    
-                    InfoLabel.Text = "Статус: Обновление..."
-                    rootPart.CFrame = targetCFrame
-                    task.wait(0.5)
-                    
-                    simulateKeyPressE()
-                    task.wait(0.6)
-                    
-                    simulateKeyPressE()
-                    task.wait(0.5)
-                    
-                    preciseMouseClick(1420, 533)
-                    task.wait(1.0)
-                    
-                    rootPart.CFrame = loopSavedPos * CFrame.new(0, 4, 0)
-                    task.wait(0.5)
-                end
-            end
-        end
-    end)
-    
-    ToggleButton.MouseButton1Click:Connect(function()
-        isFarming = not isFarming
-        if isFarming then
-            ToggleButton.Text = "Авто-готовка: ВКЛ"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
-        else
-            firstRun = true
-            ToggleButton.Text = "Авто-готовка: ВЫКЛ"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-            InfoLabel.Text = "Статус: Отключено"
         end
     end)
 end
@@ -839,17 +373,9 @@ local function CreateButton(emoji, text, callback)
     Button.Font = Enum.Font.GothamBold
     Button.TextSize = 11
     Button.Parent = MainFrame
-    
-    Button.MouseEnter:Connect(function() 
-        Button.BackgroundColor3 = Colors.ButtonHover 
-    end)
-    
-    Button.MouseLeave:Connect(function() 
-        Button.BackgroundColor3 = Colors.Button 
-    end)
-    
+    Button.MouseEnter:Connect(function() Button.BackgroundColor3 = Colors.ButtonHover end)
+    Button.MouseLeave:Connect(function() Button.BackgroundColor3 = Colors.Button end)
     Button.MouseButton1Click:Connect(callback)
-    
     yPos += 40
     return Button
 end
@@ -864,10 +390,8 @@ end)
 
 CreateButton("🔍", "СКАНЕР ПАРТ", function()
     local ScannerFrame = CreateWindow("ScannerWindow", "🔍 СКАНЕР", 320, 340)
-    
     local isSelecting = false
     local currentHighlight = Instance.new("Highlight")
-    
     local ToggleSelector = Instance.new("TextButton")
     ToggleSelector.Size = UDim2.new(0.9, 0, 0, 35)
     ToggleSelector.Position = UDim2.new(0.05, 0, 0, 40)
@@ -877,13 +401,11 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     ToggleSelector.Font = Enum.Font.GothamBold
     ToggleSelector.TextSize = 11
     ToggleSelector.Parent = ScannerFrame
-    
     local InfoContainer = Instance.new("Frame")
     InfoContainer.Size = UDim2.new(0.9, 0, 0, 230)
     InfoContainer.Position = UDim2.new(0.05, 0, 0, 85)
     InfoContainer.BackgroundColor3 = Colors.ScrollBg
     InfoContainer.Parent = ScannerFrame
-    
     local NameLabel = Instance.new("TextLabel")
     NameLabel.Size = UDim2.new(0.94, 0, 0, 22)
     NameLabel.Position = UDim2.new(0.03, 0, 0, 5)
@@ -893,7 +415,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     NameLabel.Font = Enum.Font.GothamBold
     NameLabel.TextSize = 12
     NameLabel.Parent = InfoContainer
-    
     local PathLabel = Instance.new("TextBox")
     PathLabel.Size = UDim2.new(0.94, 0, 0, 40)
     PathLabel.Position = UDim2.new(0.03, 0, 0, 30)
@@ -906,7 +427,6 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     PathLabel.ClearTextOnFocus = false
     PathLabel.TextEditable = false
     PathLabel.Parent = InfoContainer
-    
     local ChildrenScroll = Instance.new("ScrollingFrame")
     ChildrenScroll.Size = UDim2.new(0.94, 0, 0, 150)
     ChildrenScroll.Position = UDim2.new(0.03, 0, 0, 75)
@@ -914,35 +434,23 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
     ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     ChildrenScroll.ScrollBarThickness = 4
     ChildrenScroll.Parent = InfoContainer
-    
     local function getCleanPath(obj)
         local path = obj.Name
         local parent = obj.Parent
-        
         while parent and parent ~= game do
             local safeName = parent.Name
             local needsQuotes = string.find(safeName, " ") or string.find(safeName, "[%p]") or string.match(safeName, "^%d")
-            
-            if needsQuotes then
-                path = '["' .. safeName .. '"]' .. "." .. path
-            else
-                path = safeName .. "." .. path
-            end
-            
+            if needsQuotes then path = '["' .. safeName .. '"]' .. "." .. path else path = safeName .. "." .. path end
             parent = parent.Parent
         end
-        
         return 'game:GetService("Workspace").' .. path
     end
-    
     local function updateChildrenList(obj)
         for _, child in pairs(ChildrenScroll:GetChildren()) do
             if child:IsA("TextLabel") then child:Destroy() end
         end
-        
         local children = obj:GetChildren()
         ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, #children * 20)
-        
         for i, child in ipairs(children) do
             local itemLabel = Instance.new("TextLabel")
             itemLabel.Size = UDim2.new(1, 0, 0, 18)
@@ -954,45 +462,29 @@ CreateButton("🔍", "СКАНЕР ПАРТ", function()
             itemLabel.Parent = ChildrenScroll
         end
     end
-    
     if ScannerConnection then ScannerConnection:Disconnect() end
     ScannerConnection = RunService.RenderStepped:Connect(function()
-        if isSelecting and Mouse.Target then
-            currentHighlight.Parent = Mouse.Target
-        else
-            currentHighlight.Parent = nil
-        end
+        if isSelecting and Mouse.Target then currentHighlight.Parent = Mouse.Target else currentHighlight.Parent = nil end
     end)
-    
     Mouse.Button1Down:Connect(function()
         if isSelecting and Mouse.Target then
             local target = Mouse.Target
             NameLabel.Text = "Имя: " .. target.Name
             PathLabel.Text = getCleanPath(target)
             updateChildrenList(target)
-            
-            pcall(function()
-                setclipboard(getCleanPath(target))
-            end)
-            
+            pcall(function() setclipboard(getCleanPath(target)) end)
             isSelecting = false
             ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
         end
     end)
-    
     ToggleSelector.MouseButton1Click:Connect(function()
         isSelecting = not isSelecting
-        if isSelecting then
-            ToggleSelector.Text = "НАВЕДИ И НАЖМИ"
-        else
-            ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
-        end
+        if isSelecting then ToggleSelector.Text = "НАВЕДИ И НАЖМИ" else ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)" end
     end)
 end)
 
 CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
     local frame = CreateWindow("PointsWindow", "📍 ТОЧКИ", 300, 300)
-    
     local createBtn = Instance.new("TextButton")
     createBtn.Size = UDim2.new(0.9, 0, 0, 32)
     createBtn.Position = UDim2.new(0.05, 0, 0, 40)
@@ -1002,7 +494,6 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
     createBtn.Font = Enum.Font.GothamBold
     createBtn.TextSize = 11
     createBtn.Parent = frame
-    
     local list = Instance.new("ScrollingFrame")
     list.Size = UDim2.new(0.9, 0, 0, 225)
     list.Position = UDim2.new(0.05, 0, 0, 77)
@@ -1010,12 +501,8 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
     list.ScrollBarThickness = 4
     list.CanvasSize = UDim2.new(0, 0, 0, 0)
     list.Parent = frame
-    
     local function refresh()
-        for _, child in ipairs(list:GetChildren()) do 
-            if child:IsA("Frame") then child:Destroy() end
-        end
-        
+        for _, child in ipairs(list:GetChildren()) do if child:IsA("Frame") then child:Destroy() end end
         local y = 3
         for i, point in ipairs(CustomPoints) do
             local idx = i
@@ -1024,30 +511,24 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
             container.Position = UDim2.new(0, 4, 0, y)
             container.BackgroundColor3 = Colors.Button
             container.Parent = list
-            
             local tpBtn = Instance.new("TextButton")
-            tpBtn.Size = UDim2.new(0.6, 0, 1, 0)
+            tpBtn.Size = UDim2.new(0.55, 0, 1, 0)
             tpBtn.BackgroundColor3 = Colors.Button
             tpBtn.Text = idx .. ". " .. point.Name
             tpBtn.TextColor3 = Colors.Text
             tpBtn.Font = Enum.Font.GothamBold
             tpBtn.TextSize = 9
             tpBtn.Parent = container
-            tpBtn.MouseButton1Click:Connect(function() 
-                SmoothTP(point.CFrame) 
-            end)
-            
+            tpBtn.MouseButton1Click:Connect(function() SmoothTP(point.CFrame) end)
             local renameBtn = Instance.new("TextButton")
             renameBtn.Size = UDim2.new(0.2, 0, 1, 0)
-            renameBtn.Position = UDim2.new(0.6, 0, 0, 0)
+            renameBtn.Position = UDim2.new(0.55, 0, 0, 0)
             renameBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 220)
             renameBtn.Text = "✏️"
             renameBtn.TextSize = 10
             renameBtn.Parent = container
-            
             renameBtn.MouseButton1Click:Connect(function()
                 local renameFrame = CreateWindow("RenameWindow", "✏️ ПЕРЕИМЕНОВАТЬ", 250, 100)
-                
                 local textBox = Instance.new("TextBox")
                 textBox.Size = UDim2.new(0.9, 0, 0, 30)
                 textBox.Position = UDim2.new(0.05, 0, 0, 35)
@@ -1058,7 +539,6 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
                 textBox.TextSize = 11
                 textBox.ClearTextOnFocus = false
                 textBox.Parent = renameFrame
-                
                 local okBtn = Instance.new("TextButton")
                 okBtn.Size = UDim2.new(0.45, 0, 0, 25)
                 okBtn.Position = UDim2.new(0.05, 0, 0, 70)
@@ -1068,7 +548,6 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
                 okBtn.Font = Enum.Font.GothamBold
                 okBtn.TextSize = 10
                 okBtn.Parent = renameFrame
-                
                 okBtn.MouseButton1Click:Connect(function()
                     if textBox.Text ~= "" then
                         CustomPoints[idx].Name = textBox.Text
@@ -1076,7 +555,6 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
                         refresh()
                     end
                 end)
-                
                 local cancelBtn = Instance.new("TextButton")
                 cancelBtn.Size = UDim2.new(0.45, 0, 0, 25)
                 cancelBtn.Position = UDim2.new(0.55, 0, 0, 70)
@@ -1086,49 +564,34 @@ CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
                 cancelBtn.Font = Enum.Font.GothamBold
                 cancelBtn.TextSize = 10
                 cancelBtn.Parent = renameFrame
-                
-                cancelBtn.MouseButton1Click:Connect(function()
-                    renameFrame:Destroy()
-                end)
+                cancelBtn.MouseButton1Click:Connect(function() renameFrame:Destroy() end)
             end)
-            
             local delBtn = Instance.new("TextButton")
-            delBtn.Size = UDim2.new(0.2, 0, 1, 0)
-            delBtn.Position = UDim2.new(0.8, 0, 0, 0)
+            delBtn.Size = UDim2.new(0.25, 0, 1, 0)
+            delBtn.Position = UDim2.new(0.75, 0, 0, 0)
             delBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
             delBtn.Text = "🗑️"
             delBtn.TextSize = 10
             delBtn.Parent = container
-            delBtn.MouseButton1Click:Connect(function()
-                table.remove(CustomPoints, idx)
-                refresh()
-            end)
-            
+            delBtn.MouseButton1Click:Connect(function() table.remove(CustomPoints, idx) refresh() end)
             y += 33
         end
-        
         list.CanvasSize = UDim2.new(0, 0, 0, math.max(y + 3, 225))
     end
-    
     createBtn.MouseButton1Click:Connect(function()
         local char = getCharacter()
         if char and char:FindFirstChild("HumanoidRootPart") then
             local pos = char.HumanoidRootPart.Position
-            local newPoint = {
-                Name = string.format("%d,%d,%d", math.round(pos.X), math.round(pos.Y), math.round(pos.Z)), 
-                CFrame = char.HumanoidRootPart.CFrame
-            }
+            local newPoint = {Name = string.format("%d,%d,%d", math.round(pos.X), math.round(pos.Y), math.round(pos.Z)), CFrame = char.HumanoidRootPart.CFrame}
             table.insert(CustomPoints, newPoint)
             refresh()
         end
     end)
-    
     refresh()
 end)
 
 CreateButton("👤", "ТП К ИГРОКУ", function()
     local frame = CreateWindow("TeleportWindow", "👤 ТП К ИГРОКУ", 280, 380)
-    
     local tb = Instance.new("TextBox")
     tb.Size = UDim2.new(0.9, 0, 0, 30)
     tb.Position = UDim2.new(0.05, 0, 0, 40)
@@ -1136,7 +599,6 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     tb.PlaceholderText = "🔍 Имя игрока..."
     tb.TextColor3 = Colors.Text
     tb.Parent = frame
-    
     local tpBtn = Instance.new("TextButton")
     tpBtn.Size = UDim2.new(0.9, 0, 0, 30)
     tpBtn.Position = UDim2.new(0.05, 0, 0, 75)
@@ -1146,61 +608,23 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     tpBtn.Font = Enum.Font.GothamBold
     tpBtn.TextSize = 11
     tpBtn.Parent = frame
-    tpBtn.MouseButton1Click:Connect(function() 
-        TeleportToPlayer(tb.Text)
-    end)
-    
-    local quickLabel = Instance.new("TextLabel")
-    quickLabel.Size = UDim2.new(0.9, 0, 0, 20)
-    quickLabel.Position = UDim2.new(0.05, 0, 0, 110)
-    quickLabel.BackgroundColor3 = Colors.TitleBar
-    quickLabel.Text = "⚡ БЫСТРЫЙ ТП:"
-    quickLabel.TextColor3 = Colors.Text
-    quickLabel.Font = Enum.Font.GothamBold
-    quickLabel.TextSize = 9
-    quickLabel.Parent = frame
-    
-    local quickList = Instance.new("ScrollingFrame")
-    quickList.Size = UDim2.new(0.9, 0, 0, 120)
-    quickList.Position = UDim2.new(0.05, 0, 0, 135)
-    quickList.BackgroundColor3 = Colors.ScrollBg
-    quickList.ScrollBarThickness = 4
-    quickList.CanvasSize = UDim2.new(0, 0, 0, #QuickPlayers * 33)
-    quickList.Parent = frame
-    
-    for i, pName in ipairs(QuickPlayers) do
-        local qBtn = Instance.new("TextButton")
-        qBtn.Size = UDim2.new(1, -8, 0, 28)
-        qBtn.Position = UDim2.new(0, 4, 0, (i-1) * 33 + 3)
-        qBtn.BackgroundColor3 = Colors.Button
-        qBtn.Text = "⚡ " .. pName
-        qBtn.TextColor3 = Colors.Text
-        qBtn.Font = Enum.Font.GothamBold
-        qBtn.TextSize = 10
-        qBtn.Parent = quickList
-        qBtn.MouseButton1Click:Connect(function() 
-            TeleportToPlayer(pName) 
-        end)
-    end
-    
+    tpBtn.MouseButton1Click:Connect(function() TeleportToPlayer(tb.Text) end)
     local serverLabel = Instance.new("TextLabel")
     serverLabel.Size = UDim2.new(0.9, 0, 0, 20)
-    serverLabel.Position = UDim2.new(0.05, 0, 0, 260)
+    serverLabel.Position = UDim2.new(0.05, 0, 0, 115)
     serverLabel.BackgroundColor3 = Colors.TitleBar
     serverLabel.Text = "👥 ИГРОКИ:"
     serverLabel.TextColor3 = Colors.Text
     serverLabel.Font = Enum.Font.GothamBold
     serverLabel.TextSize = 9
     serverLabel.Parent = frame
-    
     local serverList = Instance.new("ScrollingFrame")
-    serverList.Size = UDim2.new(0.9, 0, 0, 100)
-    serverList.Position = UDim2.new(0.05, 0, 0, 285)
+    serverList.Size = UDim2.new(0.9, 0, 0, 240)
+    serverList.Position = UDim2.new(0.05, 0, 0, 140)
     serverList.BackgroundColor3 = Colors.ScrollBg
     serverList.ScrollBarThickness = 4
     serverList.CanvasSize = UDim2.new(0, 0, 0, 0)
     serverList.Parent = frame
-    
     local sy = 3
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
@@ -1213,22 +637,30 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
             sBtn.Font = Enum.Font.Gotham
             sBtn.TextSize = 10
             sBtn.Parent = serverList
-            sBtn.MouseButton1Click:Connect(function() 
-                tb.Text = p.Name 
-            end)
+            sBtn.MouseButton1Click:Connect(function() tb.Text = p.Name end)
             sy += 33
         end
     end
     serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 3)
 end)
 
--- Кнопка "ИГРЫ" с подменю и окном телепортов справа
+-- Кнопка "ИГРЫ"
 CreateButton("🎮", "ИГРЫ", function()
-    local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 300, 250)
+    local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 300, 200)
+    
+    local shipBtn = Instance.new("TextButton")
+    shipBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    shipBtn.Position = UDim2.new(0.05, 0, 0, 45)
+    shipBtn.BackgroundColor3 = Colors.Button
+    shipBtn.Text = "🚢 ПОСТРОЙ КОРАБЛЬ"
+    shipBtn.TextColor3 = Colors.Text
+    shipBtn.Font = Enum.Font.GothamBold
+    shipBtn.TextSize = 10
+    shipBtn.Parent = frame
     
     local survivalBtn = Instance.new("TextButton")
     survivalBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    survivalBtn.Position = UDim2.new(0.05, 0, 0, 45)
+    survivalBtn.Position = UDim2.new(0.05, 0, 0, 95)
     survivalBtn.BackgroundColor3 = Colors.Button
     survivalBtn.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
     survivalBtn.TextColor3 = Colors.Text
@@ -1236,108 +668,46 @@ CreateButton("🎮", "ИГРЫ", function()
     survivalBtn.TextSize = 10
     survivalBtn.Parent = frame
     
-    local submenuFrame = Instance.new("Frame")
-    submenuFrame.Size = UDim2.new(0.9, 0, 0, 150)
-    submenuFrame.Position = UDim2.new(0.05, 0, 0, 95)
-    submenuFrame.BackgroundColor3 = Colors.ScrollBg
-    submenuFrame.Visible = false
-    submenuFrame.Parent = frame
-    
-    local teleportBtn = Instance.new("TextButton")
-    teleportBtn.Size = UDim2.new(0.9, 0, 0, 32)
-    teleportBtn.Position = UDim2.new(0.05, 0, 0, 10)
-    teleportBtn.BackgroundColor3 = Colors.Button
-    teleportBtn.Text = "📍 ТЕЛЕПОРТ"
-    teleportBtn.TextColor3 = Colors.Text
-    teleportBtn.Font = Enum.Font.GothamBold
-    teleportBtn.TextSize = 10
-    teleportBtn.Parent = submenuFrame
-    
-    local farmBtn = Instance.new("TextButton")
-    farmBtn.Size = UDim2.new(0.9, 0, 0, 32)
-    farmBtn.Position = UDim2.new(0.05, 0, 0, 47)
-    farmBtn.BackgroundColor3 = Colors.Button
-    farmBtn.Text = "🤖 ФАРМ ЗАВОДА"
-    farmBtn.TextColor3 = Colors.Text
-    farmBtn.Font = Enum.Font.GothamBold
-    farmBtn.TextSize = 10
-    farmBtn.Parent = submenuFrame
-    
-    local autoCookBtn = Instance.new("TextButton")
-    autoCookBtn.Size = UDim2.new(0.9, 0, 0, 32)
-    autoCookBtn.Position = UDim2.new(0.05, 0, 0, 84)
-    autoCookBtn.BackgroundColor3 = Colors.Button
-    autoCookBtn.Text = "🍳 АВТО ГОТОВКА"
-    autoCookBtn.TextColor3 = Colors.Text
-    autoCookBtn.Font = Enum.Font.GothamBold
-    autoCookBtn.TextSize = 10
-    autoCookBtn.Parent = submenuFrame
-    
-    -- Окно телепортов СПРАВА
-    local tpWindow = CreateWindow("TeleportListWindow", "📍 ТЕЛЕПОРТЫ", 220, 280)
-    tpWindow.Position = UDim2.new(0.7, 0, 0.3, 0)
-    tpWindow.Visible = false
-    
-    local tpLabel = Instance.new("TextLabel")
-    tpLabel.Size = UDim2.new(0.9, 0, 0, 20)
-    tpLabel.Position = UDim2.new(0.05, 0, 0, 35)
-    tpLabel.BackgroundColor3 = Colors.TitleBar
-    tpLabel.Text = "📍 ТОЧКИ:"
-    tpLabel.TextColor3 = Colors.Text
-    tpLabel.Font = Enum.Font.GothamBold
-    tpLabel.TextSize = 10
-    tpLabel.Parent = tpWindow
-    
-    local tpY = 60
-    for i, point in ipairs(FarmPoints) do
-        local tpBtn = Instance.new("TextButton")
-        tpBtn.Size = UDim2.new(0.9, 0, 0, 30)
-        tpBtn.Position = UDim2.new(0.05, 0, 0, tpY)
-        tpBtn.BackgroundColor3 = Colors.Button
-        tpBtn.Text = "📍 " .. point.name
-        tpBtn.TextColor3 = Colors.Text
-        tpBtn.Font = Enum.Font.Gotham
-        tpBtn.TextSize = 10
-        tpBtn.Parent = tpWindow
-        
-        tpBtn.MouseButton1Click:Connect(function()
-            SmoothTP(CFrame.new(point.pos))
+    -- Загрузка "Построй корабль" по ссылке
+    local shipLoading = false
+    shipBtn.MouseButton1Click:Connect(function()
+        if shipLoading then return end
+        shipLoading = true
+        shipBtn.Text = "⏳ ЗАГРУЗКА..."
+        task.spawn(function()
+            local success, err = pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/p99910346-eng/solaris/refs/heads/main/How%20to%20Build%20a%20Ship%20in%20Roblox"))()
+            end)
+            if not success then print("Ошибка: " .. tostring(err)) end
+            shipBtn.Text = "🚢 ПОСТРОЙ КОРАБЛЬ"
+            shipLoading = false
         end)
-        
-        tpY += 35
-    end
+    end)
     
+    -- Загрузка "Выживание" по ссылке
+    local isLoading = false
     survivalBtn.MouseButton1Click:Connect(function()
-        submenuFrame.Visible = not submenuFrame.Visible
-    end)
-    
-    teleportBtn.MouseButton1Click:Connect(function()
-        tpWindow.Visible = not tpWindow.Visible
-    end)
-    
-    farmBtn.MouseButton1Click:Connect(function()
-        OpenFarmGUI()
-    end)
-    
-    autoCookBtn.MouseButton1Click:Connect(function()
-        OpenAutoCookGUI()
+        if isLoading then return end
+        isLoading = true
+        survivalBtn.Text = "⏳ ЗАГРУЗКА..."
+        task.spawn(function()
+            local success, err = pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/p99910346-eng/solaris/refs/heads/main/Backstreet%20Survival"))()
+            end)
+            if not success then print("Ошибка: " .. tostring(err)) end
+            survivalBtn.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
+            isLoading = false
+        end)
     end)
 end)
 
 CreateButton("⚙️", "НАСТРОЙКИ", function()
     local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ", 300, 310)
-    
     local names = {
-        HideGUI = "👁️ Скрыть", 
-        Fly = "✈️ Полёт", 
-        Noclip = "👻 Ноклип", 
-        TPMouse = "🖱️ ТП мышь", 
-        CopyCoords = "📋 Координаты", 
-        ESP = "🔴 ESP",
-        AutoClicker = "🖱️ Кликер",
-        AutoClickerSpeed = "⚡ Скорость кликера"
+        HideGUI = "👁️ Скрыть", Fly = "✈️ Полёт", Noclip = "👻 Ноклип",
+        TPMouse = "🖱️ ТП мышь", CopyCoords = "📋 Координаты", ESP = "🔴 ESP",
+        AutoClicker = "🖱️ Кликер", AutoClickerSpeed = "⚡ Скорость кликера"
     }
-    
     local y = 40
     for key, display in pairs(names) do
         local lbl = Instance.new("TextLabel")
@@ -1349,7 +719,6 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
         lbl.Font = Enum.Font.GothamBold
         lbl.TextSize = 10
         lbl.Parent = frame
-        
         local keyBtn = Instance.new("TextButton")
         keyBtn.Size = UDim2.new(0.4, 0, 0, 28)
         keyBtn.Position = UDim2.new(0.55, 0, 0, y)
@@ -1359,11 +728,9 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
         keyBtn.Font = Enum.Font.GothamBold
         keyBtn.TextSize = 9
         keyBtn.Parent = frame
-        
         keyBtn.MouseButton1Click:Connect(function()
             keyBtn.Text = "⌨️..."
             local conn
-            
             conn = UserInputService.InputBegan:Connect(function(input, gp)
                 if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
                     Keys[key] = input.KeyCode
@@ -1372,97 +739,66 @@ CreateButton("⚙️", "НАСТРОЙКИ", function()
                 end
             end)
         end)
-        
         y += 33
     end
 end)
 
 UserInputService.InputBegan:Connect(function(input, gp)
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-    
-    if KeyCooldown[input.KeyCode] and tick() - KeyCooldown[input.KeyCode] < 0.3 then
-        return
-    end
-    
+    if KeyCooldown[input.KeyCode] and tick() - KeyCooldown[input.KeyCode] < 0.3 then return end
     KeyCooldown[input.KeyCode] = tick()
-    
     if input.KeyCode == Keys.HideGUI then
         GUIHidden = not GUIHidden
+        MainFrame.Visible = not GUIHidden
         for _, child in ipairs(ScreenGui:GetChildren()) do
-            if child:IsA("Frame") then 
-                child.Visible = not GUIHidden 
-            end
+            if child:IsA("Frame") and child ~= MainFrame then child.Visible = not GUIHidden end
         end
     end
-    
     if gp then return end
-    
     if input.KeyCode == Keys.Fly then ToggleFly() end
     if input.KeyCode == Keys.Noclip then ToggleNoclip() end
     if input.KeyCode == Keys.ESP then ToggleESP() end
     if input.KeyCode == Keys.AutoClicker then ToggleAutoClicker() end
     if input.KeyCode == Keys.AutoClickerSpeed then OpenAutoClickerSpeedWindow() end
-    
     if input.KeyCode == Keys.TPMouse then
         local char = getCharacter()
         if char and char:FindFirstChild("HumanoidRootPart") then
             SmoothTP(CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0)))
         end
     end
-    
     if input.KeyCode == Keys.CopyCoords then
         local char = getCharacter()
         if char and char:FindFirstChild("HumanoidRootPart") then
             local p = char.HumanoidRootPart.Position
-            pcall(function()
-                setclipboard(string.format("Vector3.new(%d,%d,%d)", 
-                    math.round(p.X), math.round(p.Y), math.round(p.Z)))
-            end)
+            pcall(function() setclipboard(string.format("Vector3.new(%d,%d,%d)", math.round(p.X), math.round(p.Y), math.round(p.Z))) end)
         end
     end
-    
     local numpadPoints = {
-        [Enum.KeyCode.KeypadOne] = 1,
-        [Enum.KeyCode.KeypadTwo] = 2,
-        [Enum.KeyCode.KeypadThree] = 3,
-        [Enum.KeyCode.KeypadFour] = 4,
-        [Enum.KeyCode.KeypadFive] = 5,
-        [Enum.KeyCode.KeypadSix] = 6,
-        [Enum.KeyCode.KeypadSeven] = 7,
-        [Enum.KeyCode.KeypadEight] = 8,
+        [Enum.KeyCode.KeypadOne] = 1, [Enum.KeyCode.KeypadTwo] = 2,
+        [Enum.KeyCode.KeypadThree] = 3, [Enum.KeyCode.KeypadFour] = 4,
+        [Enum.KeyCode.KeypadFive] = 5, [Enum.KeyCode.KeypadSix] = 6,
+        [Enum.KeyCode.KeypadSeven] = 7, [Enum.KeyCode.KeypadEight] = 8,
         [Enum.KeyCode.KeypadNine] = 9,
     }
-    
     if numpadPoints[input.KeyCode] then
         local pointIndex = numpadPoints[input.KeyCode]
-        if CustomPoints[pointIndex] then
-            SmoothTP(CustomPoints[pointIndex].CFrame)
-        end
+        if CustomPoints[pointIndex] then SmoothTP(CustomPoints[pointIndex].CFrame) end
     end
-    
     local quickTP = {
-        [Enum.KeyCode.F1] = "Dfgvmg456",
-        [Enum.KeyCode.F2] = "minti",
-        [Enum.KeyCode.F3] = "pro_GREEN001",
-        [Enum.KeyCode.F4] = "Wr_White",
-        [Enum.KeyCode.F5] = "pasha999938",
-        [Enum.KeyCode.F6] = "Dfgvmg2"
+        [Enum.KeyCode.F1] = "Dfgvmg456", [Enum.KeyCode.F2] = "minti",
+        [Enum.KeyCode.F3] = "pro_GREEN001", [Enum.KeyCode.F4] = "Wr_White",
+        [Enum.KeyCode.F5] = "pasha999938", [Enum.KeyCode.F6] = "Dfgvmg2"
     }
-    
-    if quickTP[input.KeyCode] then
-        TeleportToPlayer(quickTP[input.KeyCode])
-    end
+    if quickTP[input.KeyCode] then TeleportToPlayer(quickTP[input.KeyCode]) end
 end)
 
 LocalPlayer.CharacterAdded:Connect(function(char)
     if SpawnPoint then
         wait(0.5)
         local root = char:WaitForChild("HumanoidRootPart")
-        if root then 
-            root.CFrame = SpawnPoint 
-        end
+        if root then root.CFrame = SpawnPoint end
     end
 end)
 
 print("Solaris GUI v" .. Version .. " загружен!")
-print("Авто готовка с выбором микроволновки!")
+print("Корабль и Выживание загружаются по ссылкам!")
