@@ -1,0 +1,148 @@
+-- Построй корабль (для загрузки по ссылке)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+local Colors = {
+    Frame = Color3.fromRGB(255, 255, 255),
+    TitleBar = Color3.fromRGB(230, 230, 240),
+    Button = Color3.fromRGB(240, 240, 245),
+    Text = Color3.fromRGB(30, 30, 40)
+}
+
+local function getCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+local function SmoothTP(targetCFrame)
+    local char = getCharacter()
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = targetCFrame
+    end
+end
+
+local function MakeDraggable(frame, titleBar)
+    local isDragging = false
+    local dragStart = nil
+    local frameStart = nil
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = true
+            dragStart = input.Position
+            frameStart = frame.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement and dragStart and frameStart then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(frameStart.X.Scale, frameStart.X.Offset + delta.X, frameStart.Y.Scale, frameStart.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then isDragging = false end
+    end)
+end
+
+local ShipBases = {
+    {name = "База 1", pos = Vector3.new(372, -9, 647)},
+    {name = "База 2", pos = Vector3.new(374, -9, 300)},
+    {name = "База 3", pos = Vector3.new(374, -9, -65)},
+    {name = "База 4", pos = Vector3.new(-50, -9, -497)},
+    {name = "База 5", pos = Vector3.new(-481, -9, -70)},
+    {name = "База 6", pos = Vector3.new(-482, -9, 294)},
+    {name = "База 7", pos = Vector3.new(-482, -9, 640)}
+}
+
+-- Создание GUI
+local SG = Instance.new("ScreenGui")
+SG.Name = "ShipGUI"
+SG.ResetOnSpawn = false
+SG.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 250, 0, 360)
+MainFrame.Position = UDim2.new(0.7, 0, 0.25, 0)
+MainFrame.BackgroundColor3 = Colors.Frame
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = SG
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local TopBar = Instance.new("TextLabel")
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+TopBar.BackgroundColor3 = Colors.TitleBar
+TopBar.Text = "🚢 ПОСТРОЙ КОРАБЛЬ"
+TopBar.TextColor3 = Colors.Text
+TopBar.Font = Enum.Font.GothamBold
+TopBar.TextSize = 11
+TopBar.Parent = MainFrame
+
+MakeDraggable(MainFrame, TopBar)
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 22, 0, 22)
+CloseBtn.Position = UDim2.new(1, -27, 0, 4)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Colors.Text
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 10
+CloseBtn.Parent = TopBar
+CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
+
+-- Заголовок баз
+local shipLabel = Instance.new("TextLabel")
+shipLabel.Size = UDim2.new(0.9, 0, 0, 20)
+shipLabel.Position = UDim2.new(0.05, 0, 0, 35)
+shipLabel.BackgroundColor3 = Colors.TitleBar
+shipLabel.Text = "🚢 ТП БАЗЫ:"
+shipLabel.TextColor3 = Colors.Text
+shipLabel.Font = Enum.Font.GothamBold
+shipLabel.TextSize = 10
+shipLabel.Parent = MainFrame
+
+-- Кнопки баз
+local shipY = 60
+for i, base in ipairs(ShipBases) do
+    local baseBtn = Instance.new("TextButton")
+    baseBtn.Size = UDim2.new(0.9, 0, 0, 28)
+    baseBtn.Position = UDim2.new(0.05, 0, 0, shipY)
+    baseBtn.BackgroundColor3 = Colors.Button
+    baseBtn.Text = "📍 " .. base.name
+    baseBtn.TextColor3 = Colors.Text
+    baseBtn.Font = Enum.Font.Gotham
+    baseBtn.TextSize = 9
+    baseBtn.Parent = MainFrame
+    baseBtn.MouseButton1Click:Connect(function() SmoothTP(CFrame.new(base.pos)) end)
+    shipY += 33
+end
+
+-- Кнопка фарма золота
+local goldFarmBtn = Instance.new("TextButton")
+goldFarmBtn.Size = UDim2.new(0.9, 0, 0, 35)
+goldFarmBtn.Position = UDim2.new(0.05, 0, 0, shipY + 10)
+goldFarmBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
+goldFarmBtn.Text = "💰 ФАРМ ЗОЛОТА"
+goldFarmBtn.TextColor3 = Colors.Text
+goldFarmBtn.Font = Enum.Font.GothamBold
+goldFarmBtn.TextSize = 10
+goldFarmBtn.Parent = MainFrame
+
+goldFarmBtn.MouseButton1Click:Connect(function()
+    goldFarmBtn.Text = "⏳ ЗАГРУЗКА..."
+    task.spawn(function()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/cell0ph1ne/Other_Scripts/refs/heads/main/Gold_Farming"))()
+        end)
+        if not success then
+            print("Ошибка: " .. tostring(err))
+            goldFarmBtn.Text = "❌ ОШИБКА"
+            task.wait(1)
+        end
+        goldFarmBtn.Text = "💰 ФАРМ ЗОЛОТА"
+    end)
+end)
+
+print("Построй корабль загружен!")
