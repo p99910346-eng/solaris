@@ -1,4 +1,4 @@
--- Выживание на задних улицах (полный скрипт с D каждые 30 сек)
+-- Выживание на задних улицах (полный скрипт с кулдауном 3 сек)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -325,7 +325,7 @@ local function pickupTV(statusLabel)
 end
 
 -- ============================================
--- ФАРМ ЗАВОДА (с D каждые 30 секунд)
+-- ФАРМ ЗАВОДА (кулдаун 3 сек, D каждые 30 сек)
 -- ============================================
 local function OpenFarmGUI()
     if CoreGui:FindFirstChild("LoopTwoPointsGui") then CoreGui.LoopTwoPointsGui:Destroy() end
@@ -338,7 +338,7 @@ local function OpenFarmGUI()
     
     local isSystemActive = false
     local lastTeleportTime = 0
-    local teleportCooldown = 15
+    local teleportCooldown = 3
     local isPaused = false
     local lastDPressTime = 0
     
@@ -547,7 +547,6 @@ local function OpenFarmGUI()
         end
     end
     
-    -- Цикл фарма
     task.spawn(function()
         while true do
             task.wait(0.1)
@@ -565,7 +564,6 @@ local function OpenFarmGUI()
         end
     end)
     
-    -- Цикл Dual Console
     task.spawn(function()
         while true do
             task.wait(0.2)
@@ -574,7 +572,6 @@ local function OpenFarmGUI()
         end
     end)
     
-    -- Цикл D каждые 30 секунд
     task.spawn(function()
         while true do
             task.wait(1)
@@ -583,7 +580,6 @@ local function OpenFarmGUI()
                 if os.time() - lastDPressTime >= 30 then
                     simulateKeyPressD()
                     lastDPressTime = os.time()
-                    print("Нажал D (каждые 30 секунд)")
                 end
             end
         end
@@ -1219,4 +1215,4 @@ CreateMenuButton("💰 ПРОДАТЬ", 205, function() OpenSellGUI() end)
 
 print("Выживание на задних улицах загружено!")
 print("Телепортов: " .. #FarmPoints)
-print("Фарм завода: D каждые 30 секунд!")
+print("Кулдаун консолей: 3 секунды!")
