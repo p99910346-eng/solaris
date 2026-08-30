@@ -1,4 +1,4 @@
--- Выживание на задних улицах + Авто ремонт v2.1 (полный скрипт)
+-- Выживание на задних улицах + Авто ремонт v2.3 (полный скрипт)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -152,8 +152,8 @@ local function scrollAt(x, y, direction)
     task.wait(0.2)
 end
 
--- Ремонт ноутбука
-local function repairLaptop()
+-- Создание ноутбука
+local function craftLaptop()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -170,8 +170,34 @@ local function repairLaptop()
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
 end
 
--- Ремонт фонарика
-local function repairFlashlight()
+-- Забор ноутбука
+local function pickupLaptop(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    
+    for i = 65, 1, -1 do
+        statusLabel.Text = "Статус: Ноут таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: Забор ноута..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+-- Создание фонарика
+local function craftFlashlight()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -188,8 +214,34 @@ local function repairFlashlight()
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
 end
 
--- Ремонт часов
-local function repairWatch()
+-- Забор фонарика
+local function pickupFlashlight(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    
+    for i = 14, 1, -1 do
+        statusLabel.Text = "Статус: Фонарик таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: Забор фонарика..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+-- Создание часов
+local function craftWatch()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -209,8 +261,34 @@ local function repairWatch()
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
 end
 
--- Ремонт камеры
-local function repairCamera()
+-- Забор часов
+local function pickupWatch(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    
+    for i = 33, 1, -1 do
+        statusLabel.Text = "Статус: Часы таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: Забор часов..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+-- Создание камеры
+local function craftCamera()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -230,8 +308,34 @@ local function repairCamera()
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
 end
 
--- Ремонт телевизора
-local function repairTV()
+-- Забор камеры
+local function pickupCamera(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    
+    for i = 33, 1, -1 do
+        statusLabel.Text = "Статус: Камера таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: Забор камеры..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+-- Создание телевизора
+local function craftTV()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
@@ -246,6 +350,32 @@ local function repairTV()
     preciseMouseClick(923, 587)
     task.wait(1)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+end
+
+-- Забор телевизора
+local function pickupTV(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    
+    for i = 65, 1, -1 do
+        statusLabel.Text = "Статус: Телек таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: Забор телека..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    statusLabel.Text = "Статус: Сканирование..."
 end
 
 -- ============================================
@@ -634,13 +764,7 @@ local function OpenAutoRepairGUI()
     CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
     
     local activeToggles = {}
-    local timers = {
-        flashlight = false,
-        watch = false,
-        camera = false,
-        tv = false,
-        laptop = false
-    }
+    local isWorking = false
     
     local itemsWindow = Instance.new("Frame")
     itemsWindow.Size = UDim2.new(0.9, 0, 0, 80)
@@ -777,112 +901,70 @@ local function OpenAutoRepairGUI()
         end
     end)
     
+    -- Основной цикл
     task.spawn(function()
         while SG.Parent do
             task.wait(0.1)
             
-            -- Фонарик
-            if activeToggles["flashlight"] and not timers.flashlight and not timers.laptop and not timers.watch and not timers.camera and not timers.tv then
-                if getTotalItemCount("Trash_Bottle") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Nail") >= 1 and getTotalItemCount("Trash_Plastic") >= 2 then
-                    statusLabel.Text = "Статус: Ремонт фонарика..."
-                    repairFlashlight()
-                    timers.flashlight = true
-                    task.spawn(function()
-                        for i = 14, 1, -1 do
-                            statusLabel.Text = "Статус: Фонарик таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(1)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.flashlight = false
+            if not isWorking then
+                -- Фонарик
+                if activeToggles["flashlight"] then
+                    if getTotalItemCount("Trash_Bottle") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Nail") >= 1 and getTotalItemCount("Trash_Plastic") >= 2 then
+                        isWorking = true
+                        statusLabel.Text = "Статус: Создание фонарика..."
+                        craftFlashlight()
+                        pickupFlashlight(statusLabel)
+                        isWorking = false
                         statusLabel.Text = "Статус: Сканирование..."
-                    end)
+                    end
                 end
-            end
-            
-            -- Часы
-            if activeToggles["watch"] and not timers.watch and not timers.laptop and not timers.flashlight and not timers.camera and not timers.tv then
-                if getTotalItemCount("Trash_Watch") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Plastic") >= 3 then
-                    statusLabel.Text = "Статус: Ремонт часов..."
-                    repairWatch()
-                    timers.watch = true
-                    task.spawn(function()
-                        for i = 33, 1, -1 do
-                            statusLabel.Text = "Статус: Часы таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(1)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.watch = false
+                
+                -- Часы
+                if activeToggles["watch"] and not isWorking then
+                    if getTotalItemCount("Trash_Watch") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Plastic") >= 3 then
+                        isWorking = true
+                        statusLabel.Text = "Статус: Создание часов..."
+                        craftWatch()
+                        pickupWatch(statusLabel)
+                        isWorking = false
                         statusLabel.Text = "Статус: Сканирование..."
-                    end)
+                    end
                 end
-            end
-            
-            -- Камера
-            if activeToggles["camera"] and not timers.camera and not timers.laptop and not timers.flashlight and not timers.watch and not timers.tv then
-                if getTotalItemCount("Trash_Camera") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 2 then
-                    statusLabel.Text = "Статус: Ремонт камеры..."
-                    repairCamera()
-                    timers.camera = true
-                    task.spawn(function()
-                        for i = 33, 1, -1 do
-                            statusLabel.Text = "Статус: Камера таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(1)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.camera = false
+                
+                -- Камера
+                if activeToggles["camera"] and not isWorking then
+                    if getTotalItemCount("Trash_Camera") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 2 then
+                        isWorking = true
+                        statusLabel.Text = "Статус: Создание камеры..."
+                        craftCamera()
+                        pickupCamera(statusLabel)
+                        isWorking = false
                         statusLabel.Text = "Статус: Сканирование..."
-                    end)
+                    end
                 end
-            end
-            
-            -- Телек
-            if activeToggles["tv"] and not timers.tv and not timers.laptop and not timers.flashlight and not timers.watch and not timers.camera then
-                if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 3 then
-                    statusLabel.Text = "Статус: Ремонт телека..."
-                    repairTV()
-                    timers.tv = true
-                    task.spawn(function()
-                        for i = 65, 1, -1 do
-                            statusLabel.Text = "Статус: Телек таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(1)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.tv = false
+                
+                -- Телек
+                if activeToggles["tv"] and not isWorking then
+                    if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 3 then
+                        isWorking = true
+                        statusLabel.Text = "Статус: Создание телека..."
+                        craftTV()
+                        pickupTV(statusLabel)
+                        isWorking = false
                         statusLabel.Text = "Статус: Сканирование..."
-                    end)
+                    end
                 end
-            end
-            
-            -- Ноут
-            if activeToggles["laptop"] and not timers.laptop and not timers.flashlight and not timers.watch and not timers.camera and not timers.tv then
-                if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Motherboard") >= 1 and getTotalItemCount("Trash_Nail") >= 4 and getTotalItemCount("Trash_HardDrive") >= 1 then
-                    statusLabel.Text = "Статус: Ремонт ноута..."
-                    repairLaptop()
-                    timers.laptop = true
-                    task.spawn(function()
-                        for i = 65, 1, -1 do
-                            statusLabel.Text = "Статус: Ноут таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(1)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.laptop = false
+                
+                -- Ноут
+                if activeToggles["laptop"] and not isWorking then
+                    if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Motherboard") >= 1 and getTotalItemCount("Trash_Nail") >= 4 and getTotalItemCount("Trash_HardDrive") >= 1 then
+                        isWorking = true
+                        statusLabel.Text = "Статус: Создание ноута..."
+                        craftLaptop()
+                        pickupLaptop(statusLabel)
+                        isWorking = false
                         statusLabel.Text = "Статус: Сканирование..."
-                    end)
+                    end
                 end
             end
         end
@@ -890,27 +972,22 @@ local function OpenAutoRepairGUI()
     
     createRepairToggle("🔦 Фонарик", 150, function(enabled)
         activeToggles["flashlight"] = enabled
-        if not enabled then timers.flashlight = false end
     end)
     
     createRepairToggle("🕐 Часы", 190, function(enabled)
         activeToggles["watch"] = enabled
-        if not enabled then timers.watch = false end
     end)
     
     createRepairToggle("📷 Камера", 230, function(enabled)
         activeToggles["camera"] = enabled
-        if not enabled then timers.camera = false end
     end)
     
     createRepairToggle("📺 Телек", 270, function(enabled)
         activeToggles["tv"] = enabled
-        if not enabled then timers.tv = false end
     end)
     
     createRepairToggle("💻 Ноут", 310, function(enabled)
         activeToggles["laptop"] = enabled
-        if not enabled then timers.laptop = false end
     end)
 end
 
@@ -1092,3 +1169,4 @@ CreateMenuButton("💰 ПРОДАТЬ", 205, function() OpenSellGUI() end)
 
 print("Выживание на задних улицах + Авто ремонт загружено!")
 print("Телепортов: " .. #FarmPoints)
+print("Логика ремонта: создание → таймер → забор → возврат → проверка")
