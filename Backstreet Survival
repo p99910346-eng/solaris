@@ -1,9 +1,10 @@
--- Выживание на задних улицах + Авто ремонт (без ноута у чинилы)
+-- Авто ремонт v2.1 (исправленные задержки)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
 
 local Colors = {
     Frame = Color3.fromRGB(255, 255, 255),
@@ -17,13 +18,6 @@ local Colors = {
 
 local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-end
-
-local function SmoothTP(targetCFrame)
-    local char = getCharacter()
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = targetCFrame
-    end
 end
 
 local function MakeDraggable(frame, titleBar)
@@ -48,24 +42,7 @@ local function MakeDraggable(frame, titleBar)
     end)
 end
 
--- ============================================
--- ОСНОВНЫЕ ТОЧКИ
--- ============================================
-local FarmPoints = {
-    {name = "Каналы", pos = Vector3.new(-244, -23, -1349)},
-    {name = "Пляж", pos = Vector3.new(-157, 4, -154)},
-    {name = "Завод", pos = Vector3.new(-276, 4, 215)},
-    {name = "Чинила", pos = Vector3.new(-270, 3, 44)},
-    {name = "Продажа", pos = Vector3.new(-175, 4, 45)},
-    {name = "Ресторан", pos = Vector3.new(-161, 5, 5)},
-    {name = "Продажа 1", pos = Vector3.new(-207, 5, -39)},
-    {name = "Продажа 2", pos = Vector3.new(-207, 5, -84)},
-    {name = "Магазин", pos = Vector3.new(-267, 13, 81)}
-}
-
--- ============================================
--- ФУНКЦИИ АВТО РЕМОНТА
--- ============================================
+-- Функция получения количества предмета (из стеков)
 local function getItemStackCount(toolObject)
     if not toolObject then return 0 end
     
@@ -89,6 +66,7 @@ local function getItemStackCount(toolObject)
     return 1
 end
 
+-- Функция получения общего количества предмета
 local function getTotalItemCount(itemName)
     local totalCount = 0
     
@@ -112,900 +90,547 @@ local function getTotalItemCount(itemName)
     return totalCount
 end
 
-local function simulateKeyPressE()
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(0.1)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-end
-
-local function preciseMouseClick(x, y)
-    VirtualInputManager:SendMouseMoveEvent(x, y, game)
-    task.wait(0.15)
-    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-    task.wait(0.08)
-    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
-end
-
-local function dragMouseDown(startX, startY, endX, endY)
-    VirtualInputManager:SendMouseMoveEvent(startX, startY, game)
-    task.wait(0.15)
-    VirtualInputManager:SendMouseButtonEvent(startX, startY, 0, true, game, 1)
-    task.wait(0.1)
+-- Функция для создания переключателя
+local function createToggle(frame, yPos, name, callback)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = UDim2.new(0.9, 0, 0, 35)
+    toggleFrame.Position = UDim2.new(0.05, 0, 0, yPos)
+    toggleFrame.BackgroundColor3 = Colors.Button
+    toggleFrame.Parent = frame
     
-    local steps = 20
-    for i = 1, steps do
-        local currentX = startX + (endX - startX) * (i / steps)
-        local currentY = startY + (endY - startY) * (i / steps)
-        VirtualInputManager:SendMouseMoveEvent(currentX, currentY, game)
-        task.wait(0.02)
-    end
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.65, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Colors.Text
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 10
+    label.Parent = toggleFrame
     
-    task.wait(0.15)
-    VirtualInputManager:SendMouseButtonEvent(endX, endY, 0, false, game, 1)
-    task.wait(0.2)
-end
-
-local function scrollAt(x, y, direction)
-    VirtualInputManager:SendMouseMoveEvent(x, y, game)
-    task.wait(0.1)
-    VirtualInputManager:SendMouseWheelEvent(x, y, direction, game)
-    task.wait(0.1)
-end
-
--- Ремонт ноутбука
-local function repairLaptop()
-    local targetPosition = Vector3.new(-276, 4, 43)
-    local char = getCharacter()
-    local rootPart = char:WaitForChild("HumanoidRootPart")
-    local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0.3, 0, 0.7, 0)
+    toggleBtn.Position = UDim2.new(0.68, 0, 0.15, 0)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+    toggleBtn.Text = "ВЫКЛ"
+    toggleBtn.TextColor3 = Colors.Text
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.TextSize = 9
+    toggleBtn.Parent = toggleFrame
     
-    rootPart.CFrame = targetLook
-    task.wait(0.5)
-    simulateKeyPressE()
-    task.wait(1.2)
-    dragMouseDown(1654, 489, 1654, 820)
-    preciseMouseClick(955, 629)
-    task.wait(0.8)
-    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
-end
-
--- Ремонт фонарика
-local function repairFlashlight()
-    local targetPosition = Vector3.new(-276, 4, 43)
-    local char = getCharacter()
-    local rootPart = char:WaitForChild("HumanoidRootPart")
-    local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = toggleBtn
     
-    rootPart.CFrame = targetLook
-    task.wait(0.5)
-    simulateKeyPressE()
-    task.wait(1.0)
-    dragMouseDown(1653, 589, 1654, 427)
-    preciseMouseClick(921, 500)
-    task.wait(0.5)
-    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
-end
-
--- Ремонт часов
-local function repairWatch()
-    local targetPosition = Vector3.new(-276, 4, 43)
-    local char = getCharacter()
-    local rootPart = char:WaitForChild("HumanoidRootPart")
-    local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    local enabled = false
     
-    rootPart.CFrame = targetLook
-    task.wait(0.5)
-    simulateKeyPressE()
-    task.wait(1.0)
-    for i = 1, 10 do
-        scrollAt(846, 587, -1)
-    end
-    task.wait(0.3)
-    preciseMouseClick(978, 737)
-    task.wait(0.5)
-    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
-end
-
--- Ремонт камеры
-local function repairCamera()
-    local targetPosition = Vector3.new(-276, 4, 43)
-    local char = getCharacter()
-    local rootPart = char:WaitForChild("HumanoidRootPart")
-    local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(0.5)
-    simulateKeyPressE()
-    task.wait(1.0)
-    for i = 1, 10 do
-        scrollAt(956, 664, 1)
-    end
-    task.wait(0.3)
-    preciseMouseClick(1162, 890)
-    task.wait(0.5)
-    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
-end
-
--- Ремонт телевизора
-local function repairTV()
-    local targetPosition = Vector3.new(-276, 4, 43)
-    local char = getCharacter()
-    local rootPart = char:WaitForChild("HumanoidRootPart")
-    local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(0.5)
-    simulateKeyPressE()
-    task.wait(1.0)
-    dragMouseDown(1651, 485, 1652, 738)
-    preciseMouseClick(923, 587)
-    task.wait(0.5)
-    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
-end
-
--- ============================================
--- ФАРМ ЗАВОДА
--- ============================================
-local function OpenFarmGUI()
-    if CoreGui:FindFirstChild("LoopTwoPointsGui") then CoreGui.LoopTwoPointsGui:Destroy() end
-    local Point1 = Vector3.new(-255, 4, 208)
-    local Point2 = Vector3.new(-281, 6, 242)
-    local isFarming = false
-    local farmSpeed = 0.6
-    local SG = Instance.new("ScreenGui")
-    local Frame = Instance.new("Frame")
-    local TopBar = Instance.new("TextLabel")
-    local CloseBtn = Instance.new("TextButton")
-    local ToggleBtn = Instance.new("TextButton")
-    local SpeedLabel = Instance.new("TextLabel")
-    local SpeedInput = Instance.new("TextBox")
-    local SpeedApply = Instance.new("TextButton")
-    local UICorner = Instance.new("UICorner")
-    local TopCorner = Instance.new("UICorner")
-    local BtnCorner = Instance.new("UICorner")
-    local InputCorner = Instance.new("UICorner")
-    SG.Parent = CoreGui
-    SG.Name = "LoopTwoPointsGui"
-    Frame.Parent = SG
-    Frame.BackgroundColor3 = Colors.Frame
-    Frame.Position = UDim2.new(0.05, 0, 0.25, 0)
-    Frame.Size = UDim2.new(0, 220, 0, 170)
-    Frame.Active = true
-    UICorner.CornerRadius = UDim.new(0, 10)
-    UICorner.Parent = Frame
-    TopBar.Parent = Frame
-    TopBar.BackgroundColor3 = Colors.TitleBar
-    TopBar.Size = UDim2.new(1, 0, 0, 30)
-    TopBar.Text = "🤖 Фарм завод"
-    TopBar.TextColor3 = Colors.Text
-    TopBar.Font = Enum.Font.GothamBold
-    TopBar.TextSize = 11
-    TopCorner.CornerRadius = UDim.new(0, 10)
-    TopCorner.Parent = TopBar
-    CloseBtn.Parent = TopBar
-    CloseBtn.Size = UDim2.new(0, 22, 0, 22)
-    CloseBtn.Position = UDim2.new(1, -27, 0, 4)
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
-    CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Colors.Text
-    CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.TextSize = 10
-    SpeedLabel.Parent = Frame
-    SpeedLabel.BackgroundTransparency = 1
-    SpeedLabel.Position = UDim2.new(0.05, 0, 0.22, 0)
-    SpeedLabel.Size = UDim2.new(0.9, 0, 0, 20)
-    SpeedLabel.Font = Enum.Font.Gotham
-    SpeedLabel.Text = "Скорость (сек): " .. farmSpeed
-    SpeedLabel.TextColor3 = Colors.Text
-    SpeedLabel.TextSize = 10
-    SpeedInput.Parent = Frame
-    SpeedInput.BackgroundColor3 = Colors.Input
-    SpeedInput.Position = UDim2.new(0.05, 0, 0.34, 0)
-    SpeedInput.Size = UDim2.new(0.55, 0, 0, 25)
-    SpeedInput.Font = Enum.Font.GothamBold
-    SpeedInput.Text = tostring(farmSpeed)
-    SpeedInput.TextColor3 = Colors.Text
-    SpeedInput.TextSize = 10
-    SpeedInput.ClearTextOnFocus = false
-    InputCorner.CornerRadius = UDim.new(0, 4)
-    InputCorner.Parent = SpeedInput
-    SpeedApply.Parent = Frame
-    SpeedApply.BackgroundColor3 = Colors.Button
-    SpeedApply.Position = UDim2.new(0.65, 0, 0.34, 0)
-    SpeedApply.Size = UDim2.new(0.3, 0, 0, 25)
-    SpeedApply.Font = Enum.Font.GothamBold
-    SpeedApply.Text = "✅"
-    SpeedApply.TextColor3 = Colors.Text
-    SpeedApply.TextSize = 10
-    ToggleBtn.Parent = Frame
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-    ToggleBtn.Position = UDim2.new(0.05, 0, 0.58, 0)
-    ToggleBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    ToggleBtn.Font = Enum.Font.GothamBold
-    ToggleBtn.Text = "Цикл: ВЫКЛ"
-    ToggleBtn.TextColor3 = Colors.Text
-    ToggleBtn.TextSize = 12
-    BtnCorner.CornerRadius = UDim.new(0, 6)
-    BtnCorner.Parent = ToggleBtn
-    MakeDraggable(Frame, TopBar)
-    SpeedApply.MouseButton1Click:Connect(function()
-        local num = tonumber(SpeedInput.Text)
-        if num and num >= 0.1 then
-            farmSpeed = num
-            SpeedLabel.Text = "Скорость (сек): " .. farmSpeed
-        end
-    end)
-    CloseBtn.MouseButton1Click:Connect(function() isFarming = false SG:Destroy() end)
-    task.spawn(function()
-        while true do
-            task.wait(0.1)
-            if not SG or not SG.Parent then break end
-            if isFarming then
-                local char = getCharacter()
-                local rootPart = char:WaitForChild("HumanoidRootPart")
-                rootPart.CFrame = CFrame.lookAt(Point1, Point1 + Vector3.new(0, 0, -1))
-                task.wait(farmSpeed)
-                if isFarming then simulateKeyPressE() task.wait(farmSpeed) end
-                rootPart.CFrame = CFrame.lookAt(Point2, Point2 + Vector3.new(0, 0, -1))
-                task.wait(farmSpeed)
-                if isFarming then simulateKeyPressE() task.wait(farmSpeed) end
-            end
-        end
-    end)
-    ToggleBtn.MouseButton1Click:Connect(function()
-        isFarming = not isFarming
-        if isFarming then
-            ToggleBtn.Text = "Цикл: ВКЛ"
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
+    toggleBtn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        if enabled then
+            toggleBtn.Text = "ВКЛ"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
         else
-            ToggleBtn.Text = "Цикл: ВЫКЛ"
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+            toggleBtn.Text = "ВЫКЛ"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
         end
+        callback(enabled)
     end)
+    
+    return toggleFrame
 end
 
--- ============================================
--- АВТО ГОТОВКА
--- ============================================
-local function OpenAutoCookGUI()
-    if CoreGui:FindFirstChild("DraggableMicrowaveFarm") then CoreGui.DraggableMicrowaveFarm:Destroy() end
-    local microwavePositions = {
-        {name = "Микроволновка 1", pos = Vector3.new(-181, 5, 18)},
-        {name = "Микроволновка 2", pos = Vector3.new(-162, 5, -9)},
-        {name = "Микроволновка 3", pos = Vector3.new(-186, 5, -9)},
-        {name = "Микроволновка 4", pos = Vector3.new(-185, 5, 8)}
-    }
-    local selectedMicrowave = microwavePositions[1]
-    local cookingTime = 15
-    local clickCount = 1
-    local isFarming = false
-    local firstRun = true
-    local SG = Instance.new("ScreenGui")
-    local Frame = Instance.new("Frame")
-    local TopBar = Instance.new("TextLabel")
-    local CloseBtn = Instance.new("TextButton")
-    local ToggleBtn = Instance.new("TextButton")
-    local TimeInput = Instance.new("TextBox")
-    local TimeLabel = Instance.new("TextLabel")
-    local ClickInput = Instance.new("TextBox")
-    local ClickLabel = Instance.new("TextLabel")
-    local InfoLabel = Instance.new("TextLabel")
-    local MicrowaveLabel = Instance.new("TextLabel")
-    local MicrowaveSelect = Instance.new("TextButton")
-    local UICorner = Instance.new("UICorner")
-    local TopCorner = Instance.new("UICorner")
-    local BtnCorner = Instance.new("UICorner")
-    local InputCorner = Instance.new("UICorner")
-    local ClickCorner = Instance.new("UICorner")
-    SG.Parent = CoreGui
-    SG.Name = "DraggableMicrowaveFarm"
-    Frame.Parent = SG
-    Frame.BackgroundColor3 = Colors.Frame
-    Frame.Position = UDim2.new(0.05, 0, 0.3, 0)
-    Frame.Size = UDim2.new(0, 220, 0, 250)
-    Frame.Active = true
-    UICorner.CornerRadius = UDim.new(0, 10)
-    UICorner.Parent = Frame
-    TopBar.Parent = Frame
-    TopBar.BackgroundColor3 = Colors.TitleBar
-    TopBar.Size = UDim2.new(1, 0, 0, 30)
-    TopBar.Text = "🍳 Авто готовка"
-    TopBar.TextColor3 = Colors.Text
-    TopBar.Font = Enum.Font.GothamBold
-    TopBar.TextSize = 11
-    TopCorner.CornerRadius = UDim.new(0, 10)
-    TopCorner.Parent = TopBar
-    CloseBtn.Parent = TopBar
-    CloseBtn.Size = UDim2.new(0, 22, 0, 22)
-    CloseBtn.Position = UDim2.new(1, -27, 0, 4)
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
-    CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Colors.Text
-    CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.TextSize = 10
-    MicrowaveLabel.Parent = Frame
-    MicrowaveLabel.BackgroundTransparency = 1
-    MicrowaveLabel.Position = UDim2.new(0.05, 0, 0.14, 0)
-    MicrowaveLabel.Size = UDim2.new(0.9, 0, 0, 20)
-    MicrowaveLabel.Font = Enum.Font.Gotham
-    MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
-    MicrowaveLabel.TextColor3 = Colors.Text
-    MicrowaveLabel.TextSize = 10
-    MicrowaveSelect.Parent = Frame
-    MicrowaveSelect.BackgroundColor3 = Colors.Button
-    MicrowaveSelect.Position = UDim2.new(0.05, 0, 0.22, 0)
-    MicrowaveSelect.Size = UDim2.new(0.9, 0, 0, 25)
-    MicrowaveSelect.Font = Enum.Font.GothamBold
-    MicrowaveSelect.Text = "🔄 СМЕНИТЬ"
-    MicrowaveSelect.TextColor3 = Colors.Text
-    MicrowaveSelect.TextSize = 10
-    TimeLabel.Parent = Frame
-    TimeLabel.BackgroundTransparency = 1
-    TimeLabel.Position = UDim2.new(0.05, 0, 0.34, 0)
-    TimeLabel.Size = UDim2.new(0.55, 0, 0, 20)
-    TimeLabel.Font = Enum.Font.Gotham
-    TimeLabel.Text = "Время (сек):"
-    TimeLabel.TextColor3 = Colors.Text
-    TimeLabel.TextSize = 10
-    TimeInput.Parent = Frame
-    TimeInput.BackgroundColor3 = Colors.Input
-    TimeInput.Position = UDim2.new(0.6, 0, 0.34, 0)
-    TimeInput.Size = UDim2.new(0.35, 0, 0, 20)
-    TimeInput.Font = Enum.Font.GothamBold
-    TimeInput.Text = tostring(cookingTime)
-    TimeInput.TextColor3 = Colors.Text
-    TimeInput.TextSize = 10
-    TimeInput.ClearTextOnFocus = false
-    InputCorner.CornerRadius = UDim.new(0, 4)
-    InputCorner.Parent = TimeInput
-    ClickLabel.Parent = Frame
-    ClickLabel.BackgroundTransparency = 1
-    ClickLabel.Position = UDim2.new(0.05, 0, 0.44, 0)
-    ClickLabel.Size = UDim2.new(0.55, 0, 0, 20)
-    ClickLabel.Font = Enum.Font.Gotham
-    ClickLabel.Text = "Клики мышью:"
-    ClickLabel.TextColor3 = Colors.Text
-    ClickLabel.TextSize = 10
-    ClickInput.Parent = Frame
-    ClickInput.BackgroundColor3 = Colors.Input
-    ClickInput.Position = UDim2.new(0.6, 0, 0.44, 0)
-    ClickInput.Size = UDim2.new(0.35, 0, 0, 20)
-    ClickInput.Font = Enum.Font.GothamBold
-    ClickInput.Text = tostring(clickCount)
-    ClickInput.TextColor3 = Colors.Text
-    ClickInput.TextSize = 10
-    ClickInput.ClearTextOnFocus = false
-    ClickCorner.CornerRadius = UDim.new(0, 4)
-    ClickCorner.Parent = ClickInput
-    ToggleBtn.Parent = Frame
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-    ToggleBtn.Position = UDim2.new(0.05, 0, 0.56, 0)
-    ToggleBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    ToggleBtn.Font = Enum.Font.GothamBold
-    ToggleBtn.Text = "Авто-готовка: ВЫКЛ"
-    ToggleBtn.TextColor3 = Colors.Text
-    ToggleBtn.TextSize = 11
-    BtnCorner.CornerRadius = UDim.new(0, 6)
-    BtnCorner.Parent = ToggleBtn
-    InfoLabel.Parent = Frame
-    InfoLabel.BackgroundTransparency = 1
-    InfoLabel.Position = UDim2.new(0.05, 0, 0.75, 0)
-    InfoLabel.Size = UDim2.new(0.9, 0, 0, 40)
-    InfoLabel.Font = Enum.Font.Gotham
-    InfoLabel.Text = "Статус: Ожидание"
-    InfoLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
-    InfoLabel.TextSize = 9
-    InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
-    MakeDraggable(Frame, TopBar)
-    local currentMicrowaveIndex = 1
-    MicrowaveSelect.MouseButton1Click:Connect(function()
-        currentMicrowaveIndex = currentMicrowaveIndex + 1
-        if currentMicrowaveIndex > #microwavePositions then currentMicrowaveIndex = 1 end
-        selectedMicrowave = microwavePositions[currentMicrowaveIndex]
-        MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
-    end)
-    TimeInput.FocusLost:Connect(function()
-        local num = tonumber(TimeInput.Text)
-        if num and num >= 0 then cookingTime = num else TimeInput.Text = tostring(cookingTime) end
-    end)
-    ClickInput.FocusLost:Connect(function()
-        local num = tonumber(ClickInput.Text)
-        if num and num >= 1 then clickCount = math.floor(num) else ClickInput.Text = tostring(clickCount) end
-    end)
-    CloseBtn.MouseButton1Click:Connect(function() isFarming = false SG:Destroy() end)
-    local function clickMouse(x, y)
+-- Общие переменные
+local laptopRunning = false
+local laptopTimerActive = false
+local flashlightRunning = false
+local flashlightTimerActive = false
+local watchRunning = false
+local watchTimerActive = false
+local cameraRunning = false
+local cameraTimerActive = false
+local tvRunning = false
+local tvTimerActive = false
+
+local activeToggles = {}
+
+-- Функция для ноутбука (исправленные задержки)
+local function repairLaptop()
+    if laptopRunning then return end
+    laptopRunning = true
+    
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local dragStartX, dragStartY = 1654, 489
+    local dragEndY = 820
+    local clickX, clickY = 955, 629
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.3)  -- Увеличено
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    local function dragMouseDown(startX, startY, endY)
+        VirtualInputManager:SendMouseMoveEvent(startX, startY, game)
+        task.wait(0.3)  -- Увеличено
+        VirtualInputManager:SendMouseButtonEvent(startX, startY, 0, true, game, 1)
+        task.wait(0.2)  -- Увеличено
+        for currentY = startY, endY, 20 do  -- Меньше шагов
+            VirtualInputManager:SendMouseMoveEvent(startX, currentY, game)
+            task.wait(0.05)  -- Увеличено
+        end
+        task.wait(0.3)  -- Увеличено
+        VirtualInputManager:SendMouseButtonEvent(startX, endY, 0, false, game, 1)
+        task.wait(0.5)  -- Увеличено
+    end
+    
+    local function preciseMouseClick(x, y)
         VirtualInputManager:SendMouseMoveEvent(x, y, game)
-        task.wait(0.12)
+        task.wait(0.3)  -- Увеличено
         VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-        task.wait(0.05)
+        task.wait(0.15)  -- Увеличено
         VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
     end
-    local function clickMouseMultiple(x, y, times)
-        for i = 1, times do
-            clickMouse(x, y)
-            task.wait(0.3)
-        end
-    end
-    local function straightLook(cframe)
-        local x, y, z = cframe:ToEulerAnglesYXZ()
-        return CFrame.new(cframe.Position) * CFrame.fromEulerAnglesYXZ(0, y, 0)
-    end
-    task.spawn(function()
-        while true do
-            task.wait(0.3)
-            if not SG or not SG.Parent then break end
-            if isFarming then
-                local char = getCharacter()
-                local rootPart = char:WaitForChild("HumanoidRootPart")
-                local savedPos = straightLook(rootPart.CFrame)
-                local targetCFrame = straightLook(CFrame.new(selectedMicrowave.pos))
-                if firstRun then
-                    InfoLabel.Text = "Запуск..."
-                    rootPart.CFrame = targetCFrame
-                    task.wait(0.5)
-                    simulateKeyPressE()
-                    task.wait(0.5)
-                    clickMouseMultiple(1420, 533, clickCount)
-                    task.wait(0.5)
-                    rootPart.CFrame = savedPos * CFrame.new(0, 4, 0)
-                    firstRun = false
-                end
-                for i = cookingTime, 1, -1 do
-                    if not isFarming then break end
-                    ToggleBtn.Text = "Печётся: " .. i .. "с"
-                    InfoLabel.Text = "Выпекание " .. i .. "/" .. cookingTime
-                    task.wait(1)
-                end
-                if isFarming and not firstRun then
-                    local loopSavedPos = straightLook(rootPart.CFrame)
-                    rootPart.CFrame = targetCFrame
-                    task.wait(0.5)
-                    simulateKeyPressE()
-                    task.wait(0.6)
-                    simulateKeyPressE()
-                    task.wait(0.5)
-                    clickMouseMultiple(1420, 533, clickCount)
-                    task.wait(0.5)
-                    rootPart.CFrame = loopSavedPos * CFrame.new(0, 4, 0)
-                    task.wait(0.5)
-                end
-            end
-        end
-    end)
-    ToggleBtn.MouseButton1Click:Connect(function()
-        isFarming = not isFarming
-        if isFarming then
-            ToggleBtn.Text = "Авто-готовка: ВКЛ"
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
-        else
-            firstRun = true
-            ToggleBtn.Text = "Авто-готовка: ВЫКЛ"
-            ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-            InfoLabel.Text = "Статус: Отключено"
-        end
-    end)
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)  -- Увеличено
+    simulateKeyPressE()
+    task.wait(2)  -- Увеличено
+    dragMouseDown(dragStartX, dragStartY, dragEndY)
+    preciseMouseClick(clickX, clickY)
+    task.wait(1)  -- Увеличено
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    
+    laptopRunning = false
 end
 
--- ============================================
--- АВТО РЕМОНТ GUI
--- ============================================
-local function OpenAutoRepairGUI()
-    local SG = Instance.new("ScreenGui")
-    SG.Name = "AutoRepairGUI"
-    SG.ResetOnSpawn = false
-    SG.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- Функция для таймера ноутбука
+local function laptopTimerLoop(statusLabel)
+    laptopTimerActive = true
     
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 250, 0, 350)
-    MainFrame.Position = UDim2.new(0.7, 0, 0.3, 0)
-    MainFrame.BackgroundColor3 = Colors.Frame
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Parent = SG
+    local targetPosition = Vector3.new(-276, 4, 43)
     
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 12)
-    UICorner.Parent = MainFrame
-    
-    local TopBar = Instance.new("TextLabel")
-    TopBar.Size = UDim2.new(1, 0, 0, 30)
-    TopBar.BackgroundColor3 = Colors.TitleBar
-    TopBar.Text = "🔧 АВТО РЕМОНТ"
-    TopBar.TextColor3 = Colors.Text
-    TopBar.Font = Enum.Font.GothamBold
-    TopBar.TextSize = 11
-    TopBar.Parent = MainFrame
-    
-    MakeDraggable(MainFrame, TopBar)
-    
-    local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Size = UDim2.new(0, 22, 0, 22)
-    CloseBtn.Position = UDim2.new(1, -27, 0, 4)
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
-    CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Colors.Text
-    CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.TextSize = 10
-    CloseBtn.Parent = TopBar
-    CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
-    
-    local activeToggles = {}
-    local timers = {
-        flashlight = false,
-        watch = false,
-        camera = false,
-        tv = false,
-        laptop = false
-    }
-    
-    local itemsWindow = Instance.new("Frame")
-    itemsWindow.Size = UDim2.new(0.9, 0, 0, 80)
-    itemsWindow.Position = UDim2.new(0.05, 0, 0, 35)
-    itemsWindow.BackgroundColor3 = Colors.ScrollBg
-    itemsWindow.Parent = MainFrame
-    
-    local itemsCorner = Instance.new("UICorner")
-    itemsCorner.CornerRadius = UDim.new(0, 6)
-    itemsCorner.Parent = itemsWindow
-    
-    local itemsLabel = Instance.new("TextLabel")
-    itemsLabel.Size = UDim2.new(1, -10, 0, 75)
-    itemsLabel.Position = UDim2.new(0, 5, 0, 3)
-    itemsLabel.BackgroundTransparency = 1
-    itemsLabel.TextColor3 = Colors.Text
-    itemsLabel.Font = Enum.Font.Gotham
-    itemsLabel.TextSize = 8
-    itemsLabel.TextWrapped = true
-    itemsLabel.Parent = itemsWindow
-    
-    local statusLabel = Instance.new("TextLabel")
-    statusLabel.Size = UDim2.new(0.9, 0, 0, 25)
-    statusLabel.Position = UDim2.new(0.05, 0, 0, 120)
-    statusLabel.BackgroundColor3 = Colors.TitleBar
-    statusLabel.Text = "Статус: Ожидание"
-    statusLabel.TextColor3 = Colors.Text
-    statusLabel.Font = Enum.Font.GothamBold
-    statusLabel.TextSize = 9
-    statusLabel.Parent = MainFrame
-    
-    local function createRepairToggle(name, yPos, callback)
-        local toggleFrame = Instance.new("Frame")
-        toggleFrame.Size = UDim2.new(0.9, 0, 0, 35)
-        toggleFrame.Position = UDim2.new(0.05, 0, 0, yPos)
-        toggleFrame.BackgroundColor3 = Colors.Button
-        toggleFrame.Parent = MainFrame
-        
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.65, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Text = name
-        label.TextColor3 = Colors.Text
-        label.Font = Enum.Font.GothamBold
-        label.TextSize = 10
-        label.Parent = toggleFrame
-        
-        local toggleBtn = Instance.new("TextButton")
-        toggleBtn.Size = UDim2.new(0.3, 0, 0.7, 0)
-        toggleBtn.Position = UDim2.new(0.68, 0, 0.15, 0)
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-        toggleBtn.Text = "ВЫКЛ"
-        toggleBtn.TextColor3 = Colors.Text
-        toggleBtn.Font = Enum.Font.GothamBold
-        toggleBtn.TextSize = 9
-        toggleBtn.Parent = toggleFrame
-        
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = toggleBtn
-        
-        local enabled = false
-        
-        toggleBtn.MouseButton1Click:Connect(function()
-            enabled = not enabled
-            if enabled then
-                toggleBtn.Text = "ВКЛ"
-                toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
-            else
-                toggleBtn.Text = "ВЫКЛ"
-                toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-            end
-            callback(enabled)
-        end)
-    end
-    
-    local function updateItemsWindow()
-        local text = ""
-        
-        if activeToggles["flashlight"] then
-            text = text .. "🔦 ФОНАРИК:\n"
-            text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/2\n"
-            text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/1\n"
-            text = text .. "Бутылка: " .. getTotalItemCount("Trash_Bottle") .. "/1\n"
-            text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/1\n"
-        end
-        
-        if activeToggles["watch"] then
-            if text ~= "" then text = text .. "\n" end
-            text = text .. "🕐 ЧАСЫ:\n"
-            text = text .. "Часы: " .. getTotalItemCount("Trash_Watch") .. "/1\n"
-            text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/1\n"
-            text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/3"
-        end
-        
-        if activeToggles["camera"] then
-            if text ~= "" then text = text .. "\n" end
-            text = text .. "📷 КАМЕРА:\n"
-            text = text .. "Камера: " .. getTotalItemCount("Trash_Camera") .. "/1\n"
-            text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/2\n"
-            text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/2\n"
-            text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/2"
-        end
-        
-        if activeToggles["tv"] then
-            if text ~= "" then text = text .. "\n" end
-            text = text .. "📺 ТЕЛЕК:\n"
-            text = text .. "ТВ: " .. getTotalItemCount("Trash_BrokenTV") .. "/1\n"
-            text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/2\n"
-            text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/2\n"
-            text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/3"
-        end
-        
-        if activeToggles["laptop"] then
-            if text ~= "" then text = text .. "\n" end
-            text = text .. "💻 НОУТ:\n"
-            text = text .. "ТВ: " .. getTotalItemCount("Trash_BrokenTV") .. "/1\n"
-            text = text .. "Материнка: " .. getTotalItemCount("Trash_Motherboard") .. "/1\n"
-            text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/4\n"
-            text = text .. "Диск: " .. getTotalItemCount("Trash_HardDrive") .. "/1"
-        end
-        
-        if text == "" then
-            text = "Включите переключатель"
-        end
-        
-        itemsLabel.Text = text
-    end
-    
-    task.spawn(function()
-        while SG.Parent do
-            updateItemsWindow()
-            task.wait(0.1)
-        end
-    end)
-    
-    task.spawn(function()
-        while SG.Parent do
-            task.wait(0.1)
-            
-            if activeToggles["flashlight"] and not timers.flashlight and not timers.laptop and not timers.watch and not timers.camera and not timers.tv then
-                if getTotalItemCount("Trash_Bottle") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Nail") >= 1 and getTotalItemCount("Trash_Plastic") >= 2 then
-                    statusLabel.Text = "Статус: Ремонт фонарика..."
-                    repairFlashlight()
-                    timers.flashlight = true
-                    task.spawn(function()
-                        for i = 14, 1, -1 do
-                            statusLabel.Text = "Статус: Фонарик таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(0.5)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.flashlight = false
-                        statusLabel.Text = "Статус: Сканирование..."
-                    end)
-                end
-            end
-            
-            if activeToggles["watch"] and not timers.watch and not timers.laptop and not timers.flashlight and not timers.camera and not timers.tv then
-                if getTotalItemCount("Trash_Watch") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Plastic") >= 3 then
-                    statusLabel.Text = "Статус: Ремонт часов..."
-                    repairWatch()
-                    timers.watch = true
-                    task.spawn(function()
-                        for i = 33, 1, -1 do
-                            statusLabel.Text = "Статус: Часы таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(0.5)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.watch = false
-                        statusLabel.Text = "Статус: Сканирование..."
-                    end)
-                end
-            end
-            
-            if activeToggles["camera"] and not timers.camera and not timers.laptop and not timers.flashlight and not timers.watch and not timers.tv then
-                if getTotalItemCount("Trash_Camera") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 2 then
-                    statusLabel.Text = "Статус: Ремонт камеры..."
-                    repairCamera()
-                    timers.camera = true
-                    task.spawn(function()
-                        for i = 33, 1, -1 do
-                            statusLabel.Text = "Статус: Камера таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(0.5)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.camera = false
-                        statusLabel.Text = "Статус: Сканирование..."
-                    end)
-                end
-            end
-            
-            if activeToggles["tv"] and not timers.tv and not timers.laptop and not timers.flashlight and not timers.watch and not timers.camera then
-                if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 3 then
-                    statusLabel.Text = "Статус: Ремонт телека..."
-                    repairTV()
-                    timers.tv = true
-                    task.spawn(function()
-                        for i = 65, 1, -1 do
-                            statusLabel.Text = "Статус: Телек таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(0.5)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.tv = false
-                        statusLabel.Text = "Статус: Сканирование..."
-                    end)
-                end
-            end
-            
-            if activeToggles["laptop"] and not timers.laptop and not timers.flashlight and not timers.watch and not timers.camera and not timers.tv then
-                if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Motherboard") >= 1 and getTotalItemCount("Trash_Nail") >= 4 and getTotalItemCount("Trash_HardDrive") >= 1 then
-                    statusLabel.Text = "Статус: Ремонт ноута..."
-                    repairLaptop()
-                    timers.laptop = true
-                    task.spawn(function()
-                        for i = 65, 1, -1 do
-                            statusLabel.Text = "Статус: Ноут таймер " .. i .. "с..."
-                            task.wait(1)
-                        end
-                        SmoothTP(CFrame.new(-276, 4, 43))
-                        task.wait(0.5)
-                        simulateKeyPressE()
-                        task.wait(0.5)
-                        timers.laptop = false
-                        statusLabel.Text = "Статус: Сканирование..."
-                    end)
-                end
-            end
-        end
-    end)
-    
-    createRepairToggle("🔦 Фонарик", 150, function(enabled)
-        activeToggles["flashlight"] = enabled
-        if not enabled then timers.flashlight = false end
-    end)
-    
-    createRepairToggle("🕐 Часы", 190, function(enabled)
-        activeToggles["watch"] = enabled
-        if not enabled then timers.watch = false end
-    end)
-    
-    createRepairToggle("📷 Камера", 230, function(enabled)
-        activeToggles["camera"] = enabled
-        if not enabled then timers.camera = false end
-    end)
-    
-    createRepairToggle("📺 Телек", 270, function(enabled)
-        activeToggles["tv"] = enabled
-        if not enabled then timers.tv = false end
-    end)
-    
-    createRepairToggle("💻 Ноут", 310, function(enabled)
-        activeToggles["laptop"] = enabled
-        if not enabled then timers.laptop = false end
-    end)
-end
-
--- ============================================
--- ПРОДАТЬ
--- ============================================
-local function OpenSellGUI()
-    if CoreGui:FindFirstChild("CustomFactoryFarmGui") then CoreGui.CustomFactoryFarmGui:Destroy() end
-    local targetPosition = Vector3.new(-173, 4, 47)
-    local clickX, clickY = 1546, 821
-    local isRunning = false
-    local SG = Instance.new("ScreenGui")
-    SG.Name = "CustomFactoryFarmGui"
-    SG.Parent = CoreGui
-    local Frame = Instance.new("Frame")
-    Frame.BackgroundColor3 = Colors.Frame
-    Frame.Position = UDim2.new(0.05, 0, 0.25, 0)
-    Frame.Size = UDim2.new(0, 200, 0, 95)
-    Frame.Active = true
-    Frame.Parent = SG
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 8)
-    UICorner.Parent = Frame
-    local TopBar = Instance.new("TextLabel")
-    TopBar.BackgroundColor3 = Colors.TitleBar
-    TopBar.Size = UDim2.new(1, 0, 0, 30)
-    TopBar.Text = "💰 Продать"
-    TopBar.TextColor3 = Colors.Text
-    TopBar.Font = Enum.Font.GothamBold
-    TopBar.TextSize = 11
-    TopBar.Parent = Frame
-    MakeDraggable(Frame, TopBar)
-    local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Size = UDim2.new(0, 22, 0, 22)
-    CloseBtn.Position = UDim2.new(1, -27, 0, 4)
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
-    CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Colors.Text
-    CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.TextSize = 10
-    CloseBtn.Parent = TopBar
-    local StartBtn = Instance.new("TextButton")
-    StartBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-    StartBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
-    StartBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    StartBtn.Font = Enum.Font.GothamBold
-    StartBtn.Text = "ПРОДАТЬ"
-    StartBtn.TextColor3 = Colors.Text
-    StartBtn.TextSize = 12
-    StartBtn.Parent = Frame
-    local BtnCorner = Instance.new("UICorner")
-    BtnCorner.CornerRadius = UDim.new(0, 6)
-    BtnCorner.Parent = StartBtn
-    CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
-    StartBtn.MouseButton1Click:Connect(function()
-        if isRunning then return end
-        isRunning = true
-        StartBtn.Text = "Выполнение..."
-        local char = getCharacter()
-        local rootPart = char:WaitForChild("HumanoidRootPart")
-        local savedPosition = rootPart.CFrame
-        local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-        rootPart.CFrame = targetLook
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
         task.wait(0.3)
-        simulateKeyPressE()
-        task.wait(1.0)
-        preciseMouseClick(clickX, clickY)
-        task.wait(0.8)
-        rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
-        StartBtn.Text = "ПРОДАТЬ"
-        isRunning = false
-    end)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    for i = 65, 1, -1 do
+        if not laptopTimerActive then return end
+        statusLabel.Text = "Статус: Ноут таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: ТП к ноуту..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    laptopTimerActive = false
+    statusLabel.Text = "Статус: Сканирование..."
 end
 
--- ============================================
--- ГЛАВНОЕ МЕНЮ
--- ============================================
+-- Функция для фонарика (исправленные задержки)
+local function repairFlashlight()
+    if flashlightRunning then return end
+    flashlightRunning = true
+    
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local dragStartX, dragStartY = 1653, 589
+    local dragEndX, dragEndY = 1654, 427
+    local clickX, clickY = 921, 500
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.3)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    local function dragMouseDown(startX, startY, endX, endY)
+        VirtualInputManager:SendMouseMoveEvent(startX, startY, game)
+        task.wait(0.3)
+        VirtualInputManager:SendMouseButtonEvent(startX, startY, 0, true, game, 1)
+        task.wait(0.2)
+        
+        local steps = 15
+        for i = 1, steps do
+            local currentX = startX + (endX - startX) * (i / steps)
+            local currentY = startY + (endY - startY) * (i / steps)
+            VirtualInputManager:SendMouseMoveEvent(currentX, currentY, game)
+            task.wait(0.05)
+        end
+        
+        task.wait(0.3)
+        VirtualInputManager:SendMouseButtonEvent(endX, endY, 0, false, game, 1)
+        task.wait(0.5)
+    end
+    
+    local function preciseMouseClick(x, y)
+        VirtualInputManager:SendMouseMoveEvent(x, y, game)
+        task.wait(0.3)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        task.wait(0.15)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    end
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(1.5)
+    dragMouseDown(dragStartX, dragStartY, dragEndX, dragEndY)
+    preciseMouseClick(clickX, clickY)
+    task.wait(1)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    
+    flashlightRunning = false
+end
+
+-- Функция для таймера фонарика
+local function flashlightTimerLoop(statusLabel)
+    flashlightTimerActive = true
+    
+    local targetPosition = Vector3.new(-276, 4, 43)
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.3)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    for i = 14, 1, -1 do
+        if not flashlightTimerActive then return end
+        statusLabel.Text = "Статус: Фонарик таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: ТП к фонарику..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    flashlightTimerActive = false
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+-- Функция для часов (исправленные задержки)
+local function repairWatch()
+    if watchRunning then return end
+    watchRunning = true
+    
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local scrollX, scrollY = 846, 587
+    local clickX, clickY = 978, 737
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.3)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    local function preciseMouseClick(x, y)
+        VirtualInputManager:SendMouseMoveEvent(x, y, game)
+        task.wait(0.3)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        task.wait(0.15)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    end
+    
+    local function scrollAt(x, y, direction)
+        VirtualInputManager:SendMouseMoveEvent(x, y, game)
+        task.wait(0.2)
+        VirtualInputManager:SendMouseWheelEvent(x, y, direction, game)
+        task.wait(0.2)
+    end
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(1.5)
+    for i = 1, 8 do
+        scrollAt(scrollX, scrollY, -1)
+    end
+    task.wait(0.5)
+    preciseMouseClick(clickX, clickY)
+    task.wait(1)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    
+    watchRunning = false
+end
+
+-- Функция для таймера часов
+local function watchTimerLoop(statusLabel)
+    watchTimerActive = true
+    
+    local targetPosition = Vector3.new(-276, 4, 43)
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.3)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    for i = 33, 1, -1 do
+        if not watchTimerActive then return end
+        statusLabel.Text = "Статус: Часы таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: ТП к часам..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    watchTimerActive = false
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+-- Функция для камеры (исправленные задержки)
+local function repairCamera()
+    if cameraRunning then return end
+    cameraRunning = true
+    
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local scrollX, scrollY = 956, 664
+    local clickX, clickY = 1162, 890
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.3)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    local function preciseMouseClick(x, y)
+        VirtualInputManager:SendMouseMoveEvent(x, y, game)
+        task.wait(0.3)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        task.wait(0.15)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    end
+    
+    local function scrollAt(x, y, direction)
+        VirtualInputManager:SendMouseMoveEvent(x, y, game)
+        task.wait(0.2)
+        VirtualInputManager:SendMouseWheelEvent(x, y, direction, game)
+        task.wait(0.2)
+    end
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(1.5)
+    for i = 1, 8 do
+        scrollAt(scrollX, scrollY, 1)
+    end
+    task.wait(0.5)
+    preciseMouseClick(clickX, clickY)
+    task.wait(1)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    
+    cameraRunning = false
+end
+
+-- Функция для таймера камеры
+local function cameraTimerLoop(statusLabel)
+    cameraTimerActive = true
+    
+    local targetPosition = Vector3.new(-276, 4, 43)
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.3)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    for i = 33, 1, -1 do
+        if not cameraTimerActive then return end
+        statusLabel.Text = "Статус: Камера таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: ТП к камере..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    cameraTimerActive = false
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+-- Функция для телевизора (исправленные задержки)
+local function repairTV()
+    if tvRunning then return end
+    tvRunning = true
+    
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local dragStartX, dragStartY = 1651, 485
+    local dragEndX, dragEndY = 1652, 738
+    local clickX, clickY = 923, 587
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.3)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    local function dragMouseDown(startX, startY, endX, endY)
+        VirtualInputManager:SendMouseMoveEvent(startX, startY, game)
+        task.wait(0.3)
+        VirtualInputManager:SendMouseButtonEvent(startX, startY, 0, true, game, 1)
+        task.wait(0.2)
+        
+        local steps = 15
+        for i = 1, steps do
+            local currentX = startX + (endX - startX) * (i / steps)
+            local currentY = startY + (endY - startY) * (i / steps)
+            VirtualInputManager:SendMouseMoveEvent(currentX, currentY, game)
+            task.wait(0.05)
+        end
+        
+        task.wait(0.3)
+        VirtualInputManager:SendMouseButtonEvent(endX, endY, 0, false, game, 1)
+        task.wait(0.5)
+    end
+    
+    local function preciseMouseClick(x, y)
+        VirtualInputManager:SendMouseMoveEvent(x, y, game)
+        task.wait(0.3)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        task.wait(0.15)
+        VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    end
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(1.5)
+    dragMouseDown(dragStartX, dragStartY, dragEndX, dragEndY)
+    preciseMouseClick(clickX, clickY)
+    task.wait(1)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    
+    tvRunning = false
+end
+
+-- Функция для таймера телевизора
+local function tvTimerLoop(statusLabel)
+    tvTimerActive = true
+    
+    local targetPosition = Vector3.new(-276, 4, 43)
+    
+    local function simulateKeyPressE()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.3)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+    
+    for i = 65, 1, -1 do
+        if not tvTimerActive then return end
+        statusLabel.Text = "Статус: Телек таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    
+    statusLabel.Text = "Статус: ТП к телеку..."
+    
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    
+    rootPart.CFrame = targetLook
+    task.wait(1)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    
+    tvTimerActive = false
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+-- Главное меню
 local SG = Instance.new("ScreenGui")
-SG.Name = "SurvivalMenu"
+SG.Name = "AutoRepairGUI"
 SG.ResetOnSpawn = false
 SG.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 300, 0, 290)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -145)
+MainFrame.Size = UDim2.new(0, 250, 0, 350)
+MainFrame.Position = UDim2.new(0.7, 0, 0.3, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = SG
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
 local TopBar = Instance.new("TextLabel")
 TopBar.Size = UDim2.new(1, 0, 0, 30)
 TopBar.BackgroundColor3 = Colors.TitleBar
-TopBar.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
+TopBar.Text = "🔧 АВТО РЕМОНТ"
 TopBar.TextColor3 = Colors.Text
 TopBar.Font = Enum.Font.GothamBold
-TopBar.TextSize = 10
+TopBar.TextSize = 11
 TopBar.Parent = MainFrame
 
 MakeDraggable(MainFrame, TopBar)
@@ -1019,71 +644,191 @@ CloseBtn.TextColor3 = Colors.Text
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 10
 CloseBtn.Parent = TopBar
-CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
+CloseBtn.MouseButton1Click:Connect(function() 
+    laptopTimerActive = false
+    flashlightTimerActive = false
+    watchTimerActive = false
+    cameraTimerActive = false
+    tvTimerActive = false
+    SG:Destroy() 
+end)
 
-local function CreateMenuButton(text, yPos, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 35)
-    btn.Position = UDim2.new(0.05, 0, 0, yPos)
-    btn.BackgroundColor3 = Colors.Button
-    btn.Text = text
-    btn.TextColor3 = Colors.Text
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 10
-    btn.Parent = MainFrame
-    btn.MouseButton1Click:Connect(callback)
-    return btn
+-- Окно счётчиков
+local itemsWindow = Instance.new("Frame")
+itemsWindow.Size = UDim2.new(0.9, 0, 0, 80)
+itemsWindow.Position = UDim2.new(0.05, 0, 0, 35)
+itemsWindow.BackgroundColor3 = Colors.ScrollBg
+itemsWindow.Parent = MainFrame
+
+local itemsCorner = Instance.new("UICorner")
+itemsCorner.CornerRadius = UDim.new(0, 6)
+itemsCorner.Parent = itemsWindow
+
+local itemsLabel = Instance.new("TextLabel")
+itemsLabel.Size = UDim2.new(1, -10, 0, 75)
+itemsLabel.Position = UDim2.new(0, 5, 0, 3)
+itemsLabel.BackgroundTransparency = 1
+itemsLabel.TextColor3 = Colors.Text
+itemsLabel.Font = Enum.Font.Gotham
+itemsLabel.TextSize = 8
+itemsLabel.TextWrapped = true
+itemsLabel.Parent = itemsWindow
+
+-- Функция обновления окна
+local function updateItemsWindow()
+    local text = ""
+    
+    if activeToggles["flashlight"] then
+        text = text .. "🔦 ФОНАРИК:\n"
+        text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/2\n"
+        text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/1\n"
+        text = text .. "Бутылка: " .. getTotalItemCount("Trash_Bottle") .. "/1\n"
+        text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/1\n"
+    end
+    
+    if activeToggles["watch"] then
+        if text ~= "" then text = text .. "\n" end
+        text = text .. "🕐 ЧАСЫ:\n"
+        text = text .. "Часы: " .. getTotalItemCount("Trash_Watch") .. "/1\n"
+        text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/1\n"
+        text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/3"
+    end
+    
+    if activeToggles["camera"] then
+        if text ~= "" then text = text .. "\n" end
+        text = text .. "📷 КАМЕРА:\n"
+        text = text .. "Камера: " .. getTotalItemCount("Trash_Camera") .. "/1\n"
+        text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/2\n"
+        text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/2\n"
+        text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/2"
+    end
+    
+    if activeToggles["tv"] then
+        if text ~= "" then text = text .. "\n" end
+        text = text .. "📺 ТЕЛЕК:\n"
+        text = text .. "ТВ: " .. getTotalItemCount("Trash_BrokenTV") .. "/1\n"
+        text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/2\n"
+        text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/2\n"
+        text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/3"
+    end
+    
+    if activeToggles["laptop"] then
+        if text ~= "" then text = text .. "\n" end
+        text = text .. "💻 НОУТ:\n"
+        text = text .. "ТВ: " .. getTotalItemCount("Trash_BrokenTV") .. "/1\n"
+        text = text .. "Материнка: " .. getTotalItemCount("Trash_Motherboard") .. "/1\n"
+        text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/4\n"
+        text = text .. "Диск: " .. getTotalItemCount("Trash_HardDrive") .. "/1"
+    end
+    
+    if text == "" then
+        text = "Включите переключатель"
+    end
+    
+    itemsLabel.Text = text
 end
 
-CreateMenuButton("📍 ТЕЛЕПОРТЫ", 45, function()
-    local tpWindow = Instance.new("Frame")
-    tpWindow.Size = UDim2.new(0, 220, 0, 370)
-    tpWindow.Position = UDim2.new(0.7, 0, 0.25, 0)
-    tpWindow.BackgroundColor3 = Colors.Frame
-    tpWindow.BorderSizePixel = 0
-    tpWindow.Parent = SG
-    local tpCorner = Instance.new("UICorner")
-    tpCorner.CornerRadius = UDim.new(0, 10)
-    tpCorner.Parent = tpWindow
-    local tpTopBar = Instance.new("TextLabel")
-    tpTopBar.Size = UDim2.new(1, 0, 0, 30)
-    tpTopBar.BackgroundColor3 = Colors.TitleBar
-    tpTopBar.Text = "📍 ТЕЛЕПОРТЫ"
-    tpTopBar.TextColor3 = Colors.Text
-    tpTopBar.Font = Enum.Font.GothamBold
-    tpTopBar.TextSize = 11
-    tpTopBar.Parent = tpWindow
-    MakeDraggable(tpWindow, tpTopBar)
-    local tpClose = Instance.new("TextButton")
-    tpClose.Size = UDim2.new(0, 22, 0, 22)
-    tpClose.Position = UDim2.new(1, -27, 0, 4)
-    tpClose.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
-    tpClose.Text = "✕"
-    tpClose.TextColor3 = Colors.Text
-    tpClose.Font = Enum.Font.GothamBold
-    tpClose.TextSize = 10
-    tpClose.Parent = tpTopBar
-    tpClose.MouseButton1Click:Connect(function() tpWindow:Destroy() end)
-    local tpY = 40
-    for i, point in ipairs(FarmPoints) do
-        local tpBtn = Instance.new("TextButton")
-        tpBtn.Size = UDim2.new(0.9, 0, 0, 30)
-        tpBtn.Position = UDim2.new(0.05, 0, 0, tpY)
-        tpBtn.BackgroundColor3 = Colors.Button
-        tpBtn.Text = "📍 " .. point.name
-        tpBtn.TextColor3 = Colors.Text
-        tpBtn.Font = Enum.Font.Gotham
-        tpBtn.TextSize = 10
-        tpBtn.Parent = tpWindow
-        tpBtn.MouseButton1Click:Connect(function() SmoothTP(CFrame.new(point.pos)) end)
-        tpY += 35
+-- Обновляем каждые 0.1 секунды
+task.spawn(function()
+    while SG.Parent do
+        updateItemsWindow()
+        task.wait(0.1)
     end
 end)
 
-CreateMenuButton("🤖 ФАРМ ЗАВОДА", 85, function() OpenFarmGUI() end)
-CreateMenuButton("🍳 АВТО ГОТОВКА", 125, function() OpenAutoCookGUI() end)
-CreateMenuButton("🔧 АВТО РЕМОНТ", 165, function() OpenAutoRepairGUI() end)
-CreateMenuButton("💰 ПРОДАТЬ", 205, function() OpenSellGUI() end)
+-- Статусная метка
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(0.9, 0, 0, 25)
+statusLabel.Position = UDim2.new(0.05, 0, 0, 120)
+statusLabel.BackgroundColor3 = Colors.TitleBar
+statusLabel.Text = "Статус: Ожидание"
+statusLabel.TextColor3 = Colors.Text
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextSize = 9
+statusLabel.Parent = MainFrame
 
-print("Выживание на задних улицах + Авто ремонт загружено!")
-print("Телепортов: " .. #FarmPoints)
+-- Основной цикл проверки
+task.spawn(function()
+    while SG.Parent do
+        task.wait(0.1)
+        
+        -- Фонарик
+        if activeToggles["flashlight"] and not flashlightTimerActive and not laptopTimerActive and not watchTimerActive and not cameraTimerActive and not tvTimerActive then
+            if getTotalItemCount("Trash_Bottle") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Nail") >= 1 and getTotalItemCount("Trash_Plastic") >= 2 then
+                statusLabel.Text = "Статус: Ремонт фонарика..."
+                repairFlashlight()
+                task.wait(1)
+                flashlightTimerLoop(statusLabel)
+            end
+        end
+        
+        -- Часы
+        if activeToggles["watch"] and not watchTimerActive and not laptopTimerActive and not flashlightTimerActive and not cameraTimerActive and not tvTimerActive then
+            if getTotalItemCount("Trash_Watch") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Plastic") >= 3 then
+                statusLabel.Text = "Статус: Ремонт часов..."
+                repairWatch()
+                task.wait(1)
+                watchTimerLoop(statusLabel)
+            end
+        end
+        
+        -- Камера
+        if activeToggles["camera"] and not cameraTimerActive and not laptopTimerActive and not flashlightTimerActive and not watchTimerActive and not tvTimerActive then
+            if getTotalItemCount("Trash_Camera") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 2 then
+                statusLabel.Text = "Статус: Ремонт камеры..."
+                repairCamera()
+                task.wait(1)
+                cameraTimerLoop(statusLabel)
+            end
+        end
+        
+        -- Телек
+        if activeToggles["tv"] and not tvTimerActive and not laptopTimerActive and not flashlightTimerActive and not watchTimerActive and not cameraTimerActive then
+            if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 3 then
+                statusLabel.Text = "Статус: Ремонт телека..."
+                repairTV()
+                task.wait(1)
+                tvTimerLoop(statusLabel)
+            end
+        end
+        
+        -- Ноут
+        if activeToggles["laptop"] and not laptopTimerActive and not flashlightTimerActive and not watchTimerActive and not cameraTimerActive and not tvTimerActive then
+            if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Motherboard") >= 1 and getTotalItemCount("Trash_Nail") >= 4 and getTotalItemCount("Trash_HardDrive") >= 1 then
+                statusLabel.Text = "Статус: Ремонт ноута..."
+                repairLaptop()
+                task.wait(1)
+                laptopTimerLoop(statusLabel)
+            end
+        end
+    end
+end)
+
+-- Переключатели
+createToggle(MainFrame, 150, "🔦 Фонарик", function(enabled)
+    activeToggles["flashlight"] = enabled
+    if not enabled then flashlightTimerActive = false end
+end)
+
+createToggle(MainFrame, 190, "🕐 Часы", function(enabled)
+    activeToggles["watch"] = enabled
+    if not enabled then watchTimerActive = false end
+end)
+
+createToggle(MainFrame, 230, "📷 Камера", function(enabled)
+    activeToggles["camera"] = enabled
+    if not enabled then cameraTimerActive = false end
+end)
+
+createToggle(MainFrame, 270, "📺 Телек", function(enabled)
+    activeToggles["tv"] = enabled
+    if not enabled then tvTimerActive = false end
+end)
+
+createToggle(MainFrame, 310, "💻 Ноут", function(enabled)
+    activeToggles["laptop"] = enabled
+    if not enabled then laptopTimerActive = false end
+end)
+
+print("Авто ремонт загружен!")
+print("Увеличенные задержки для надёжности")
