@@ -1,9 +1,10 @@
--- Выживание на задних улицах + Авто ремонт v2.3 (полный скрипт)
+-- Выживание на задних улицах (полный скрипт с D каждые 30 сек)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
 
 local Colors = {
     Frame = Color3.fromRGB(255, 255, 255),
@@ -68,7 +69,6 @@ local FarmPoints = {
 -- ============================================
 local function getItemStackCount(toolObject)
     if not toolObject then return 0 end
-    
     for _, child in ipairs(toolObject:GetChildren()) do
         if child:IsA("IntValue") or child:IsA("NumberValue") then
             local cName = string.lower(child.Name)
@@ -77,7 +77,6 @@ local function getItemStackCount(toolObject)
             end
         end
     end
-    
     local attributes = toolObject:GetAttributes()
     for attrName, attrValue in pairs(attributes) do
         local aName = string.lower(attrName)
@@ -85,13 +84,11 @@ local function getItemStackCount(toolObject)
             return attrValue
         end
     end
-    
     return 1
 end
 
 local function getTotalItemCount(itemName)
     local totalCount = 0
-    
     local bp = LocalPlayer:FindFirstChild("Backpack")
     if bp then
         for _, item in ipairs(bp:GetChildren()) do
@@ -100,7 +97,6 @@ local function getTotalItemCount(itemName)
             end
         end
     end
-    
     if LocalPlayer.Character then
         for _, item in ipairs(LocalPlayer.Character:GetChildren()) do
             if item.Name == itemName then
@@ -108,316 +104,272 @@ local function getTotalItemCount(itemName)
             end
         end
     end
-    
     return totalCount
 end
 
 local function simulateKeyPressE()
     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(0.3)
+    task.wait(0.15)
     VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+end
+
+local function simulateKeyPressD()
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.D, false, game)
+    task.wait(0.15)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.D, false, game)
 end
 
 local function preciseMouseClick(x, y)
     VirtualInputManager:SendMouseMoveEvent(x, y, game)
-    task.wait(0.3)
-    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
     task.wait(0.15)
+    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+    task.wait(0.08)
     VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
 end
 
 local function dragMouseDown(startX, startY, endX, endY)
     VirtualInputManager:SendMouseMoveEvent(startX, startY, game)
-    task.wait(0.3)
+    task.wait(0.15)
     VirtualInputManager:SendMouseButtonEvent(startX, startY, 0, true, game, 1)
-    task.wait(0.2)
-    
+    task.wait(0.1)
     local steps = 15
     for i = 1, steps do
         local currentX = startX + (endX - startX) * (i / steps)
         local currentY = startY + (endY - startY) * (i / steps)
         VirtualInputManager:SendMouseMoveEvent(currentX, currentY, game)
-        task.wait(0.05)
+        task.wait(0.02)
     end
-    
-    task.wait(0.3)
+    task.wait(0.15)
     VirtualInputManager:SendMouseButtonEvent(endX, endY, 0, false, game, 1)
-    task.wait(0.5)
+    task.wait(0.2)
 end
 
 local function scrollAt(x, y, direction)
     VirtualInputManager:SendMouseMoveEvent(x, y, game)
-    task.wait(0.2)
+    task.wait(0.1)
     VirtualInputManager:SendMouseWheelEvent(x, y, direction, game)
-    task.wait(0.2)
+    task.wait(0.1)
 end
 
--- Создание ноутбука
+-- Craft функции
 local function craftLaptop()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
     simulateKeyPressE()
-    task.wait(2)
+    task.wait(1.2)
     dragMouseDown(1654, 489, 1654, 820)
     preciseMouseClick(955, 629)
-    task.wait(1)
+    task.wait(0.8)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
 end
 
--- Забор ноутбука
 local function pickupLaptop(statusLabel)
     local targetPosition = Vector3.new(-276, 4, 43)
-    
     for i = 65, 1, -1 do
         statusLabel.Text = "Статус: Ноут таймер " .. i .. "с..."
         task.wait(1)
     end
-    
     statusLabel.Text = "Статус: Забор ноута..."
-    
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
     simulateKeyPressE()
     task.wait(0.5)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
     task.wait(0.5)
-    
     statusLabel.Text = "Статус: Сканирование..."
 end
 
--- Создание фонарика
 local function craftFlashlight()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
     simulateKeyPressE()
-    task.wait(1.5)
+    task.wait(1.0)
     dragMouseDown(1653, 589, 1654, 427)
     preciseMouseClick(921, 500)
-    task.wait(1)
+    task.wait(0.5)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
 end
 
--- Забор фонарика
 local function pickupFlashlight(statusLabel)
     local targetPosition = Vector3.new(-276, 4, 43)
-    
     for i = 14, 1, -1 do
         statusLabel.Text = "Статус: Фонарик таймер " .. i .. "с..."
         task.wait(1)
     end
-    
     statusLabel.Text = "Статус: Забор фонарика..."
-    
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
     simulateKeyPressE()
     task.wait(0.5)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
     task.wait(0.5)
-    
     statusLabel.Text = "Статус: Сканирование..."
 end
 
--- Создание часов
 local function craftWatch()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
-    simulateKeyPressE()
-    task.wait(1.5)
-    for i = 1, 8 do
-        scrollAt(846, 587, -1)
-    end
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
     task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(1.0)
+    for i = 1, 8 do scrollAt(846, 587, -1) end
+    task.wait(0.3)
     preciseMouseClick(978, 737)
-    task.wait(1)
+    task.wait(0.5)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
 end
 
--- Забор часов
 local function pickupWatch(statusLabel)
     local targetPosition = Vector3.new(-276, 4, 43)
-    
     for i = 33, 1, -1 do
         statusLabel.Text = "Статус: Часы таймер " .. i .. "с..."
         task.wait(1)
     end
-    
     statusLabel.Text = "Статус: Забор часов..."
-    
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
     simulateKeyPressE()
     task.wait(0.5)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
     task.wait(0.5)
-    
     statusLabel.Text = "Статус: Сканирование..."
 end
 
--- Создание камеры
 local function craftCamera()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
-    simulateKeyPressE()
-    task.wait(1.5)
-    for i = 1, 8 do
-        scrollAt(956, 664, 1)
-    end
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
     task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(1.0)
+    for i = 1, 8 do scrollAt(956, 664, 1) end
+    task.wait(0.3)
     preciseMouseClick(1162, 890)
-    task.wait(1)
+    task.wait(0.5)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
 end
 
--- Забор камеры
 local function pickupCamera(statusLabel)
     local targetPosition = Vector3.new(-276, 4, 43)
-    
     for i = 33, 1, -1 do
         statusLabel.Text = "Статус: Камера таймер " .. i .. "с..."
         task.wait(1)
     end
-    
     statusLabel.Text = "Статус: Забор камеры..."
-    
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
     simulateKeyPressE()
     task.wait(0.5)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
     task.wait(0.5)
-    
     statusLabel.Text = "Статус: Сканирование..."
 end
 
--- Создание телевизора
 local function craftTV()
     local targetPosition = Vector3.new(-276, 4, 43)
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
     simulateKeyPressE()
-    task.wait(1.5)
+    task.wait(1.0)
     dragMouseDown(1651, 485, 1652, 738)
     preciseMouseClick(923, 587)
-    task.wait(1)
+    task.wait(0.5)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
 end
 
--- Забор телевизора
 local function pickupTV(statusLabel)
     local targetPosition = Vector3.new(-276, 4, 43)
-    
     for i = 65, 1, -1 do
         statusLabel.Text = "Статус: Телек таймер " .. i .. "с..."
         task.wait(1)
     end
-    
     statusLabel.Text = "Статус: Забор телека..."
-    
     local char = getCharacter()
     local rootPart = char:WaitForChild("HumanoidRootPart")
     local savedPosition = rootPart.CFrame
-    local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-    
-    rootPart.CFrame = targetLook
-    task.wait(1)
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
     simulateKeyPressE()
     task.wait(0.5)
     rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
     task.wait(0.5)
-    
     statusLabel.Text = "Статус: Сканирование..."
 end
 
 -- ============================================
--- ФАРМ ЗАВОДА
+-- ФАРМ ЗАВОДА (с D каждые 30 секунд)
 -- ============================================
 local function OpenFarmGUI()
     if CoreGui:FindFirstChild("LoopTwoPointsGui") then CoreGui.LoopTwoPointsGui:Destroy() end
+    if LocalPlayer.PlayerGui:FindFirstChild("LoopTwoPointsGui") then LocalPlayer.PlayerGui.LoopTwoPointsGui:Destroy() end
+    
     local Point1 = Vector3.new(-255, 4, 208)
     local Point2 = Vector3.new(-281, 6, 242)
     local isFarming = false
     local farmSpeed = 0.6
+    
+    local isSystemActive = false
+    local lastTeleportTime = 0
+    local teleportCooldown = 15
+    local isPaused = false
+    local lastDPressTime = 0
+    
     local SG = Instance.new("ScreenGui")
-    local Frame = Instance.new("Frame")
-    local TopBar = Instance.new("TextLabel")
-    local CloseBtn = Instance.new("TextButton")
-    local ToggleBtn = Instance.new("TextButton")
-    local SpeedLabel = Instance.new("TextLabel")
-    local SpeedInput = Instance.new("TextBox")
-    local SpeedApply = Instance.new("TextButton")
-    local UICorner = Instance.new("UICorner")
-    local TopCorner = Instance.new("UICorner")
-    local BtnCorner = Instance.new("UICorner")
-    local InputCorner = Instance.new("UICorner")
-    SG.Parent = CoreGui
     SG.Name = "LoopTwoPointsGui"
-    Frame.Parent = SG
+    SG.ResetOnSpawn = false
+    SG.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
+    local Frame = Instance.new("Frame")
     Frame.BackgroundColor3 = Colors.Frame
-    Frame.Position = UDim2.new(0.05, 0, 0.25, 0)
-    Frame.Size = UDim2.new(0, 220, 0, 170)
+    Frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+    Frame.Size = UDim2.new(0, 250, 0, 250)
     Frame.Active = true
+    Frame.Parent = SG
+    
+    local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 10)
     UICorner.Parent = Frame
-    TopBar.Parent = Frame
+    
+    local TopBar = Instance.new("TextLabel")
     TopBar.BackgroundColor3 = Colors.TitleBar
     TopBar.Size = UDim2.new(1, 0, 0, 30)
     TopBar.Text = "🤖 Фарм завод"
     TopBar.TextColor3 = Colors.Text
     TopBar.Font = Enum.Font.GothamBold
     TopBar.TextSize = 11
-    TopCorner.CornerRadius = UDim.new(0, 10)
-    TopCorner.Parent = TopBar
-    CloseBtn.Parent = TopBar
+    TopBar.Parent = Frame
+    
+    MakeDraggable(Frame, TopBar)
+    
+    local CloseBtn = Instance.new("TextButton")
     CloseBtn.Size = UDim2.new(0, 22, 0, 22)
     CloseBtn.Position = UDim2.new(1, -27, 0, 4)
     CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
@@ -425,44 +377,43 @@ local function OpenFarmGUI()
     CloseBtn.TextColor3 = Colors.Text
     CloseBtn.Font = Enum.Font.GothamBold
     CloseBtn.TextSize = 10
-    SpeedLabel.Parent = Frame
+    CloseBtn.Parent = TopBar
+    CloseBtn.MouseButton1Click:Connect(function() 
+        isFarming = false 
+        isSystemActive = false
+        SG:Destroy() 
+    end)
+    
+    local SpeedLabel = Instance.new("TextLabel")
     SpeedLabel.BackgroundTransparency = 1
-    SpeedLabel.Position = UDim2.new(0.05, 0, 0.22, 0)
+    SpeedLabel.Position = UDim2.new(0.05, 0, 0.16, 0)
     SpeedLabel.Size = UDim2.new(0.9, 0, 0, 20)
     SpeedLabel.Font = Enum.Font.Gotham
     SpeedLabel.Text = "Скорость (сек): " .. farmSpeed
     SpeedLabel.TextColor3 = Colors.Text
     SpeedLabel.TextSize = 10
-    SpeedInput.Parent = Frame
+    SpeedLabel.Parent = Frame
+    
+    local SpeedInput = Instance.new("TextBox")
     SpeedInput.BackgroundColor3 = Colors.Input
-    SpeedInput.Position = UDim2.new(0.05, 0, 0.34, 0)
+    SpeedInput.Position = UDim2.new(0.05, 0, 0.25, 0)
     SpeedInput.Size = UDim2.new(0.55, 0, 0, 25)
     SpeedInput.Font = Enum.Font.GothamBold
     SpeedInput.Text = tostring(farmSpeed)
     SpeedInput.TextColor3 = Colors.Text
     SpeedInput.TextSize = 10
     SpeedInput.ClearTextOnFocus = false
-    InputCorner.CornerRadius = UDim.new(0, 4)
-    InputCorner.Parent = SpeedInput
-    SpeedApply.Parent = Frame
+    SpeedInput.Parent = Frame
+    
+    local SpeedApply = Instance.new("TextButton")
     SpeedApply.BackgroundColor3 = Colors.Button
-    SpeedApply.Position = UDim2.new(0.65, 0, 0.34, 0)
+    SpeedApply.Position = UDim2.new(0.65, 0, 0.25, 0)
     SpeedApply.Size = UDim2.new(0.3, 0, 0, 25)
     SpeedApply.Font = Enum.Font.GothamBold
     SpeedApply.Text = "✅"
     SpeedApply.TextColor3 = Colors.Text
     SpeedApply.TextSize = 10
-    ToggleBtn.Parent = Frame
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
-    ToggleBtn.Position = UDim2.new(0.05, 0, 0.58, 0)
-    ToggleBtn.Size = UDim2.new(0.9, 0, 0, 40)
-    ToggleBtn.Font = Enum.Font.GothamBold
-    ToggleBtn.Text = "Цикл: ВЫКЛ"
-    ToggleBtn.TextColor3 = Colors.Text
-    ToggleBtn.TextSize = 12
-    BtnCorner.CornerRadius = UDim.new(0, 6)
-    BtnCorner.Parent = ToggleBtn
-    MakeDraggable(Frame, TopBar)
+    SpeedApply.Parent = Frame
     SpeedApply.MouseButton1Click:Connect(function()
         local num = tonumber(SpeedInput.Text)
         if num and num >= 0.1 then
@@ -470,23 +421,16 @@ local function OpenFarmGUI()
             SpeedLabel.Text = "Скорость (сек): " .. farmSpeed
         end
     end)
-    CloseBtn.MouseButton1Click:Connect(function() isFarming = false SG:Destroy() end)
-    task.spawn(function()
-        while true do
-            task.wait(0.1)
-            if not SG or not SG.Parent then break end
-            if isFarming then
-                local char = getCharacter()
-                local rootPart = char:WaitForChild("HumanoidRootPart")
-                rootPart.CFrame = CFrame.lookAt(Point1, Point1 + Vector3.new(0, 0, -1))
-                task.wait(farmSpeed)
-                if isFarming then simulateKeyPressE() task.wait(farmSpeed) end
-                rootPart.CFrame = CFrame.lookAt(Point2, Point2 + Vector3.new(0, 0, -1))
-                task.wait(farmSpeed)
-                if isFarming then simulateKeyPressE() task.wait(farmSpeed) end
-            end
-        end
-    end)
+    
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+    ToggleBtn.Position = UDim2.new(0.05, 0, 0.39, 0)
+    ToggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.Text = "Цикл: ВЫКЛ"
+    ToggleBtn.TextColor3 = Colors.Text
+    ToggleBtn.TextSize = 11
+    ToggleBtn.Parent = Frame
     ToggleBtn.MouseButton1Click:Connect(function()
         isFarming = not isFarming
         if isFarming then
@@ -497,6 +441,153 @@ local function OpenFarmGUI()
             ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
         end
     end)
+    
+    local DualBtn = Instance.new("TextButton")
+    DualBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+    DualBtn.Position = UDim2.new(0.05, 0, 0.58, 0)
+    DualBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    DualBtn.Font = Enum.Font.GothamBold
+    DualBtn.Text = "Console: ВЫКЛ"
+    DualBtn.TextColor3 = Colors.Text
+    DualBtn.TextSize = 10
+    DualBtn.Parent = Frame
+    
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Position = UDim2.new(0.05, 0, 0.78, 0)
+    StatusLabel.Size = UDim2.new(0.9, 0, 0, 30)
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.Text = "Статус: Ожидание"
+    StatusLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
+    StatusLabel.TextSize = 9
+    StatusLabel.Parent = Frame
+    
+    DualBtn.MouseButton1Click:Connect(function()
+        isSystemActive = not isSystemActive
+        if isSystemActive then
+            DualBtn.Text = "Console: ВКЛ"
+            DualBtn.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
+            StatusLabel.Text = "Мониторинг консолей..."
+            StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+        else
+            DualBtn.Text = "Console: ВЫКЛ"
+            DualBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+            StatusLabel.Text = "Статус: Ожидание"
+            StatusLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
+        end
+    end)
+    
+    local function executeMovementToTarget(targetPart, consoleName)
+        local character = LocalPlayer.Character
+        if character and character:FindFirstChild("HumanoidRootPart") and targetPart then
+            isPaused = true
+            isFarming = false
+            
+            character:PivotTo(targetPart.CFrame * CFrame.new(0, 0, -2))
+            lastTeleportTime = os.time()
+            
+            StatusLabel.Text = "Прибыл к " .. consoleName
+            StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+            
+            task.wait(0.5)
+            simulateKeyPressE()
+            
+            StatusLabel.Text = "Пауза 3 секунды..."
+            task.wait(3)
+            
+            isPaused = false
+            if ToggleBtn.Text == "Цикл: ВКЛ" then
+                isFarming = true
+            end
+            
+            task.spawn(function()
+                for i = teleportCooldown, 1, -1 do
+                    task.wait(1)
+                    if not isSystemActive then break end
+                    StatusLabel.Text = "Кулдаун: " .. tostring(i) .. "с"
+                    StatusLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
+                end
+                if isSystemActive then
+                    StatusLabel.Text = "Мониторинг консолей..."
+                    StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+                end
+            end)
+        end
+    end
+    
+    local function processDualConsoleScanner()
+        if not isSystemActive then return end
+        if isPaused then return end
+        if os.time() - lastTeleportTime < teleportCooldown then return end
+        
+        local success, factoryFolder = pcall(function()
+            return Workspace.Map.ScriptObjects.Factory.FactoryConveyor.Console
+        end)
+        
+        if not success or not factoryFolder then return end
+        
+        local c1 = factoryFolder:FindFirstChild("Console1")
+        local p1 = c1 and c1:FindFirstChild("RepairPrompt")
+        if p1 and p1:IsA("ProximityPrompt") and p1.Enabled == true then
+            local part = p1.Parent
+            if part and part:IsA("BasePart") then
+                executeMovementToTarget(part, "Console1")
+                return
+            end
+        end
+        
+        local c2 = factoryFolder:FindFirstChild("Console2")
+        local p2 = c2 and c2:FindFirstChild("RepairPrompt")
+        if p2 and p2:IsA("ProximityPrompt") and p2.Enabled == true then
+            local part = p2.Parent
+            if part and part:IsA("BasePart") then
+                executeMovementToTarget(part, "Console2")
+                return
+            end
+        end
+    end
+    
+    -- Цикл фарма
+    task.spawn(function()
+        while true do
+            task.wait(0.1)
+            if not SG or not SG.Parent then break end
+            if isFarming and not isPaused then
+                local char = getCharacter()
+                local rootPart = char:WaitForChild("HumanoidRootPart")
+                rootPart.CFrame = CFrame.lookAt(Point1, Point1 + Vector3.new(0, 0, -1))
+                task.wait(farmSpeed)
+                if isFarming and not isPaused then simulateKeyPressE() task.wait(farmSpeed) end
+                rootPart.CFrame = CFrame.lookAt(Point2, Point2 + Vector3.new(0, 0, -1))
+                task.wait(farmSpeed)
+                if isFarming and not isPaused then simulateKeyPressE() task.wait(farmSpeed) end
+            end
+        end
+    end)
+    
+    -- Цикл Dual Console
+    task.spawn(function()
+        while true do
+            task.wait(0.2)
+            if not SG or not SG.Parent then break end
+            pcall(processDualConsoleScanner)
+        end
+    end)
+    
+    -- Цикл D каждые 30 секунд
+    task.spawn(function()
+        while true do
+            task.wait(1)
+            if not SG or not SG.Parent then break end
+            if isFarming and not isPaused then
+                if os.time() - lastDPressTime >= 30 then
+                    simulateKeyPressD()
+                    lastDPressTime = os.time()
+                    print("Нажал D (каждые 30 секунд)")
+                end
+            end
+        end
+    end)
 end
 
 -- ============================================
@@ -504,6 +595,8 @@ end
 -- ============================================
 local function OpenAutoCookGUI()
     if CoreGui:FindFirstChild("DraggableMicrowaveFarm") then CoreGui.DraggableMicrowaveFarm:Destroy() end
+    if LocalPlayer.PlayerGui:FindFirstChild("DraggableMicrowaveFarm") then LocalPlayer.PlayerGui.DraggableMicrowaveFarm:Destroy() end
+    
     local microwavePositions = {
         {name = "Микроволновка 1", pos = Vector3.new(-181, 5, 18)},
         {name = "Микроволновка 2", pos = Vector3.new(-162, 5, -9)},
@@ -515,42 +608,35 @@ local function OpenAutoCookGUI()
     local clickCount = 1
     local isFarming = false
     local firstRun = true
+    
     local SG = Instance.new("ScreenGui")
-    local Frame = Instance.new("Frame")
-    local TopBar = Instance.new("TextLabel")
-    local CloseBtn = Instance.new("TextButton")
-    local ToggleBtn = Instance.new("TextButton")
-    local TimeInput = Instance.new("TextBox")
-    local TimeLabel = Instance.new("TextLabel")
-    local ClickInput = Instance.new("TextBox")
-    local ClickLabel = Instance.new("TextLabel")
-    local InfoLabel = Instance.new("TextLabel")
-    local MicrowaveLabel = Instance.new("TextLabel")
-    local MicrowaveSelect = Instance.new("TextButton")
-    local UICorner = Instance.new("UICorner")
-    local TopCorner = Instance.new("UICorner")
-    local BtnCorner = Instance.new("UICorner")
-    local InputCorner = Instance.new("UICorner")
-    local ClickCorner = Instance.new("UICorner")
-    SG.Parent = CoreGui
     SG.Name = "DraggableMicrowaveFarm"
-    Frame.Parent = SG
+    SG.ResetOnSpawn = false
+    SG.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
+    local Frame = Instance.new("Frame")
     Frame.BackgroundColor3 = Colors.Frame
-    Frame.Position = UDim2.new(0.05, 0, 0.3, 0)
+    Frame.Position = UDim2.new(0.3, 0, 0.3, 0)
     Frame.Size = UDim2.new(0, 220, 0, 250)
     Frame.Active = true
+    Frame.Parent = SG
+    
+    local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 10)
     UICorner.Parent = Frame
-    TopBar.Parent = Frame
+    
+    local TopBar = Instance.new("TextLabel")
     TopBar.BackgroundColor3 = Colors.TitleBar
     TopBar.Size = UDim2.new(1, 0, 0, 30)
     TopBar.Text = "🍳 Авто готовка"
     TopBar.TextColor3 = Colors.Text
     TopBar.Font = Enum.Font.GothamBold
     TopBar.TextSize = 11
-    TopCorner.CornerRadius = UDim.new(0, 10)
-    TopCorner.Parent = TopBar
-    CloseBtn.Parent = TopBar
+    TopBar.Parent = Frame
+    
+    MakeDraggable(Frame, TopBar)
+    
+    local CloseBtn = Instance.new("TextButton")
     CloseBtn.Size = UDim2.new(0, 22, 0, 22)
     CloseBtn.Position = UDim2.new(1, -27, 0, 4)
     CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
@@ -558,7 +644,10 @@ local function OpenAutoCookGUI()
     CloseBtn.TextColor3 = Colors.Text
     CloseBtn.Font = Enum.Font.GothamBold
     CloseBtn.TextSize = 10
-    MicrowaveLabel.Parent = Frame
+    CloseBtn.Parent = TopBar
+    CloseBtn.MouseButton1Click:Connect(function() isFarming = false SG:Destroy() end)
+    
+    local MicrowaveLabel = Instance.new("TextLabel")
     MicrowaveLabel.BackgroundTransparency = 1
     MicrowaveLabel.Position = UDim2.new(0.05, 0, 0.14, 0)
     MicrowaveLabel.Size = UDim2.new(0.9, 0, 0, 20)
@@ -566,7 +655,9 @@ local function OpenAutoCookGUI()
     MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
     MicrowaveLabel.TextColor3 = Colors.Text
     MicrowaveLabel.TextSize = 10
-    MicrowaveSelect.Parent = Frame
+    MicrowaveLabel.Parent = Frame
+    
+    local MicrowaveSelect = Instance.new("TextButton")
     MicrowaveSelect.BackgroundColor3 = Colors.Button
     MicrowaveSelect.Position = UDim2.new(0.05, 0, 0.22, 0)
     MicrowaveSelect.Size = UDim2.new(0.9, 0, 0, 25)
@@ -574,7 +665,16 @@ local function OpenAutoCookGUI()
     MicrowaveSelect.Text = "🔄 СМЕНИТЬ"
     MicrowaveSelect.TextColor3 = Colors.Text
     MicrowaveSelect.TextSize = 10
-    TimeLabel.Parent = Frame
+    MicrowaveSelect.Parent = Frame
+    local currentMicrowaveIndex = 1
+    MicrowaveSelect.MouseButton1Click:Connect(function()
+        currentMicrowaveIndex = currentMicrowaveIndex + 1
+        if currentMicrowaveIndex > #microwavePositions then currentMicrowaveIndex = 1 end
+        selectedMicrowave = microwavePositions[currentMicrowaveIndex]
+        MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
+    end)
+    
+    local TimeLabel = Instance.new("TextLabel")
     TimeLabel.BackgroundTransparency = 1
     TimeLabel.Position = UDim2.new(0.05, 0, 0.34, 0)
     TimeLabel.Size = UDim2.new(0.55, 0, 0, 20)
@@ -582,7 +682,9 @@ local function OpenAutoCookGUI()
     TimeLabel.Text = "Время (сек):"
     TimeLabel.TextColor3 = Colors.Text
     TimeLabel.TextSize = 10
-    TimeInput.Parent = Frame
+    TimeLabel.Parent = Frame
+    
+    local TimeInput = Instance.new("TextBox")
     TimeInput.BackgroundColor3 = Colors.Input
     TimeInput.Position = UDim2.new(0.6, 0, 0.34, 0)
     TimeInput.Size = UDim2.new(0.35, 0, 0, 20)
@@ -591,9 +693,13 @@ local function OpenAutoCookGUI()
     TimeInput.TextColor3 = Colors.Text
     TimeInput.TextSize = 10
     TimeInput.ClearTextOnFocus = false
-    InputCorner.CornerRadius = UDim.new(0, 4)
-    InputCorner.Parent = TimeInput
-    ClickLabel.Parent = Frame
+    TimeInput.Parent = Frame
+    TimeInput.FocusLost:Connect(function()
+        local num = tonumber(TimeInput.Text)
+        if num and num >= 0 then cookingTime = num else TimeInput.Text = tostring(cookingTime) end
+    end)
+    
+    local ClickLabel = Instance.new("TextLabel")
     ClickLabel.BackgroundTransparency = 1
     ClickLabel.Position = UDim2.new(0.05, 0, 0.44, 0)
     ClickLabel.Size = UDim2.new(0.55, 0, 0, 20)
@@ -601,7 +707,9 @@ local function OpenAutoCookGUI()
     ClickLabel.Text = "Клики мышью:"
     ClickLabel.TextColor3 = Colors.Text
     ClickLabel.TextSize = 10
-    ClickInput.Parent = Frame
+    ClickLabel.Parent = Frame
+    
+    local ClickInput = Instance.new("TextBox")
     ClickInput.BackgroundColor3 = Colors.Input
     ClickInput.Position = UDim2.new(0.6, 0, 0.44, 0)
     ClickInput.Size = UDim2.new(0.35, 0, 0, 20)
@@ -610,9 +718,13 @@ local function OpenAutoCookGUI()
     ClickInput.TextColor3 = Colors.Text
     ClickInput.TextSize = 10
     ClickInput.ClearTextOnFocus = false
-    ClickCorner.CornerRadius = UDim.new(0, 4)
-    ClickCorner.Parent = ClickInput
-    ToggleBtn.Parent = Frame
+    ClickInput.Parent = Frame
+    ClickInput.FocusLost:Connect(function()
+        local num = tonumber(ClickInput.Text)
+        if num and num >= 1 then clickCount = math.floor(num) else ClickInput.Text = tostring(clickCount) end
+    end)
+    
+    local ToggleBtn = Instance.new("TextButton")
     ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
     ToggleBtn.Position = UDim2.new(0.05, 0, 0.56, 0)
     ToggleBtn.Size = UDim2.new(0.9, 0, 0, 40)
@@ -620,9 +732,9 @@ local function OpenAutoCookGUI()
     ToggleBtn.Text = "Авто-готовка: ВЫКЛ"
     ToggleBtn.TextColor3 = Colors.Text
     ToggleBtn.TextSize = 11
-    BtnCorner.CornerRadius = UDim.new(0, 6)
-    BtnCorner.Parent = ToggleBtn
-    InfoLabel.Parent = Frame
+    ToggleBtn.Parent = Frame
+    
+    local InfoLabel = Instance.new("TextLabel")
     InfoLabel.BackgroundTransparency = 1
     InfoLabel.Position = UDim2.new(0.05, 0, 0.75, 0)
     InfoLabel.Size = UDim2.new(0.9, 0, 0, 40)
@@ -631,23 +743,8 @@ local function OpenAutoCookGUI()
     InfoLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
     InfoLabel.TextSize = 9
     InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
-    MakeDraggable(Frame, TopBar)
-    local currentMicrowaveIndex = 1
-    MicrowaveSelect.MouseButton1Click:Connect(function()
-        currentMicrowaveIndex = currentMicrowaveIndex + 1
-        if currentMicrowaveIndex > #microwavePositions then currentMicrowaveIndex = 1 end
-        selectedMicrowave = microwavePositions[currentMicrowaveIndex]
-        MicrowaveLabel.Text = "Микроволновка: " .. selectedMicrowave.name
-    end)
-    TimeInput.FocusLost:Connect(function()
-        local num = tonumber(TimeInput.Text)
-        if num and num >= 0 then cookingTime = num else TimeInput.Text = tostring(cookingTime) end
-    end)
-    ClickInput.FocusLost:Connect(function()
-        local num = tonumber(ClickInput.Text)
-        if num and num >= 1 then clickCount = math.floor(num) else ClickInput.Text = tostring(clickCount) end
-    end)
-    CloseBtn.MouseButton1Click:Connect(function() isFarming = false SG:Destroy() end)
+    InfoLabel.Parent = Frame
+    
     local function clickMouse(x, y)
         VirtualInputManager:SendMouseMoveEvent(x, y, game)
         task.wait(0.12)
@@ -655,16 +752,19 @@ local function OpenAutoCookGUI()
         task.wait(0.05)
         VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
     end
+    
     local function clickMouseMultiple(x, y, times)
         for i = 1, times do
             clickMouse(x, y)
             task.wait(0.3)
         end
     end
+    
     local function straightLook(cframe)
         local x, y, z = cframe:ToEulerAnglesYXZ()
         return CFrame.new(cframe.Position) * CFrame.fromEulerAnglesYXZ(0, y, 0)
     end
+    
     task.spawn(function()
         while true do
             task.wait(0.3)
@@ -707,6 +807,7 @@ local function OpenAutoCookGUI()
             end
         end
     end)
+    
     ToggleBtn.MouseButton1Click:Connect(function()
         isFarming = not isFarming
         if isFarming then
@@ -722,7 +823,7 @@ local function OpenAutoCookGUI()
 end
 
 -- ============================================
--- АВТО РЕМОНТ GUI
+-- АВТО РЕМОНТ
 -- ============================================
 local function OpenAutoRepairGUI()
     local SG = Instance.new("ScreenGui")
@@ -772,10 +873,6 @@ local function OpenAutoRepairGUI()
     itemsWindow.BackgroundColor3 = Colors.ScrollBg
     itemsWindow.Parent = MainFrame
     
-    local itemsCorner = Instance.new("UICorner")
-    itemsCorner.CornerRadius = UDim.new(0, 6)
-    itemsCorner.Parent = itemsWindow
-    
     local itemsLabel = Instance.new("TextLabel")
     itemsLabel.Size = UDim2.new(1, -10, 0, 75)
     itemsLabel.Position = UDim2.new(0, 5, 0, 3)
@@ -822,12 +919,7 @@ local function OpenAutoRepairGUI()
         toggleBtn.TextSize = 9
         toggleBtn.Parent = toggleFrame
         
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = toggleBtn
-        
         local enabled = false
-        
         toggleBtn.MouseButton1Click:Connect(function()
             enabled = not enabled
             if enabled then
@@ -843,7 +935,6 @@ local function OpenAutoRepairGUI()
     
     local function updateItemsWindow()
         local text = ""
-        
         if activeToggles["flashlight"] then
             text = text .. "🔦 ФОНАРИК:\n"
             text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/2\n"
@@ -851,7 +942,6 @@ local function OpenAutoRepairGUI()
             text = text .. "Бутылка: " .. getTotalItemCount("Trash_Bottle") .. "/1\n"
             text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/1\n"
         end
-        
         if activeToggles["watch"] then
             if text ~= "" then text = text .. "\n" end
             text = text .. "🕐 ЧАСЫ:\n"
@@ -859,7 +949,6 @@ local function OpenAutoRepairGUI()
             text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/1\n"
             text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/3"
         end
-        
         if activeToggles["camera"] then
             if text ~= "" then text = text .. "\n" end
             text = text .. "📷 КАМЕРА:\n"
@@ -868,7 +957,6 @@ local function OpenAutoRepairGUI()
             text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/2\n"
             text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/2"
         end
-        
         if activeToggles["tv"] then
             if text ~= "" then text = text .. "\n" end
             text = text .. "📺 ТЕЛЕК:\n"
@@ -877,7 +965,6 @@ local function OpenAutoRepairGUI()
             text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/2\n"
             text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/3"
         end
-        
         if activeToggles["laptop"] then
             if text ~= "" then text = text .. "\n" end
             text = text .. "💻 НОУТ:\n"
@@ -886,11 +973,7 @@ local function OpenAutoRepairGUI()
             text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/4\n"
             text = text .. "Диск: " .. getTotalItemCount("Trash_HardDrive") .. "/1"
         end
-        
-        if text == "" then
-            text = "Включите переключатель"
-        end
-        
+        if text == "" then text = "Включите переключатель" end
         itemsLabel.Text = text
     end
     
@@ -901,13 +984,10 @@ local function OpenAutoRepairGUI()
         end
     end)
     
-    -- Основной цикл
     task.spawn(function()
         while SG.Parent do
             task.wait(0.1)
-            
             if not isWorking then
-                -- Фонарик
                 if activeToggles["flashlight"] then
                     if getTotalItemCount("Trash_Bottle") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Nail") >= 1 and getTotalItemCount("Trash_Plastic") >= 2 then
                         isWorking = true
@@ -915,11 +995,8 @@ local function OpenAutoRepairGUI()
                         craftFlashlight()
                         pickupFlashlight(statusLabel)
                         isWorking = false
-                        statusLabel.Text = "Статус: Сканирование..."
                     end
                 end
-                
-                -- Часы
                 if activeToggles["watch"] and not isWorking then
                     if getTotalItemCount("Trash_Watch") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Plastic") >= 3 then
                         isWorking = true
@@ -927,11 +1004,8 @@ local function OpenAutoRepairGUI()
                         craftWatch()
                         pickupWatch(statusLabel)
                         isWorking = false
-                        statusLabel.Text = "Статус: Сканирование..."
                     end
                 end
-                
-                -- Камера
                 if activeToggles["camera"] and not isWorking then
                     if getTotalItemCount("Trash_Camera") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 2 then
                         isWorking = true
@@ -939,11 +1013,8 @@ local function OpenAutoRepairGUI()
                         craftCamera()
                         pickupCamera(statusLabel)
                         isWorking = false
-                        statusLabel.Text = "Статус: Сканирование..."
                     end
                 end
-                
-                -- Телек
                 if activeToggles["tv"] and not isWorking then
                     if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 3 then
                         isWorking = true
@@ -951,11 +1022,8 @@ local function OpenAutoRepairGUI()
                         craftTV()
                         pickupTV(statusLabel)
                         isWorking = false
-                        statusLabel.Text = "Статус: Сканирование..."
                     end
                 end
-                
-                -- Ноут
                 if activeToggles["laptop"] and not isWorking then
                     if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Motherboard") >= 1 and getTotalItemCount("Trash_Nail") >= 4 and getTotalItemCount("Trash_HardDrive") >= 1 then
                         isWorking = true
@@ -963,54 +1031,43 @@ local function OpenAutoRepairGUI()
                         craftLaptop()
                         pickupLaptop(statusLabel)
                         isWorking = false
-                        statusLabel.Text = "Статус: Сканирование..."
                     end
                 end
             end
         end
     end)
     
-    createRepairToggle("🔦 Фонарик", 150, function(enabled)
-        activeToggles["flashlight"] = enabled
-    end)
-    
-    createRepairToggle("🕐 Часы", 190, function(enabled)
-        activeToggles["watch"] = enabled
-    end)
-    
-    createRepairToggle("📷 Камера", 230, function(enabled)
-        activeToggles["camera"] = enabled
-    end)
-    
-    createRepairToggle("📺 Телек", 270, function(enabled)
-        activeToggles["tv"] = enabled
-    end)
-    
-    createRepairToggle("💻 Ноут", 310, function(enabled)
-        activeToggles["laptop"] = enabled
-    end)
+    createRepairToggle("🔦 Фонарик", 150, function(enabled) activeToggles["flashlight"] = enabled end)
+    createRepairToggle("🕐 Часы", 190, function(enabled) activeToggles["watch"] = enabled end)
+    createRepairToggle("📷 Камера", 230, function(enabled) activeToggles["camera"] = enabled end)
+    createRepairToggle("📺 Телек", 270, function(enabled) activeToggles["tv"] = enabled end)
+    createRepairToggle("💻 Ноут", 310, function(enabled) activeToggles["laptop"] = enabled end)
 end
 
 -- ============================================
 -- ПРОДАТЬ
 -- ============================================
 local function OpenSellGUI()
-    if CoreGui:FindFirstChild("CustomFactoryFarmGui") then CoreGui.CustomFactoryFarmGui:Destroy() end
+    if CoreGui:FindFirstChild("SellGUI") then CoreGui.SellGUI:Destroy() end
+    if LocalPlayer.PlayerGui:FindFirstChild("SellGUI") then LocalPlayer.PlayerGui.SellGUI:Destroy() end
+    
     local targetPosition = Vector3.new(-173, 4, 47)
-    local clickX, clickY = 1546, 821
-    local isRunning = false
     local SG = Instance.new("ScreenGui")
-    SG.Name = "CustomFactoryFarmGui"
-    SG.Parent = CoreGui
+    SG.Name = "SellGUI"
+    SG.ResetOnSpawn = false
+    SG.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
     local Frame = Instance.new("Frame")
     Frame.BackgroundColor3 = Colors.Frame
-    Frame.Position = UDim2.new(0.05, 0, 0.25, 0)
+    Frame.Position = UDim2.new(0.3, 0, 0.3, 0)
     Frame.Size = UDim2.new(0, 200, 0, 95)
     Frame.Active = true
     Frame.Parent = SG
+    
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 8)
     UICorner.Parent = Frame
+    
     local TopBar = Instance.new("TextLabel")
     TopBar.BackgroundColor3 = Colors.TitleBar
     TopBar.Size = UDim2.new(1, 0, 0, 30)
@@ -1019,7 +1076,9 @@ local function OpenSellGUI()
     TopBar.Font = Enum.Font.GothamBold
     TopBar.TextSize = 11
     TopBar.Parent = Frame
+    
     MakeDraggable(Frame, TopBar)
+    
     local CloseBtn = Instance.new("TextButton")
     CloseBtn.Size = UDim2.new(0, 22, 0, 22)
     CloseBtn.Position = UDim2.new(1, -27, 0, 4)
@@ -1029,6 +1088,8 @@ local function OpenSellGUI()
     CloseBtn.Font = Enum.Font.GothamBold
     CloseBtn.TextSize = 10
     CloseBtn.Parent = TopBar
+    CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
+    
     local StartBtn = Instance.new("TextButton")
     StartBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
     StartBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
@@ -1038,27 +1099,17 @@ local function OpenSellGUI()
     StartBtn.TextColor3 = Colors.Text
     StartBtn.TextSize = 12
     StartBtn.Parent = Frame
-    local BtnCorner = Instance.new("UICorner")
-    BtnCorner.CornerRadius = UDim.new(0, 6)
-    BtnCorner.Parent = StartBtn
-    CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
     StartBtn.MouseButton1Click:Connect(function()
-        if isRunning then return end
-        isRunning = true
-        StartBtn.Text = "Выполнение..."
         local char = getCharacter()
         local rootPart = char:WaitForChild("HumanoidRootPart")
         local savedPosition = rootPart.CFrame
-        local targetLook = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
-        rootPart.CFrame = targetLook
+        rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
         task.wait(0.3)
         simulateKeyPressE()
         task.wait(1.0)
-        preciseMouseClick(clickX, clickY)
+        preciseMouseClick(1546, 821)
         task.wait(0.8)
         rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
-        StartBtn.Text = "ПРОДАТЬ"
-        isRunning = false
     end)
 end
 
@@ -1122,7 +1173,6 @@ CreateMenuButton("📍 ТЕЛЕПОРТЫ", 45, function()
     tpWindow.Size = UDim2.new(0, 220, 0, 370)
     tpWindow.Position = UDim2.new(0.7, 0, 0.25, 0)
     tpWindow.BackgroundColor3 = Colors.Frame
-    tpWindow.BorderSizePixel = 0
     tpWindow.Parent = SG
     local tpCorner = Instance.new("UICorner")
     tpCorner.CornerRadius = UDim.new(0, 10)
@@ -1167,6 +1217,6 @@ CreateMenuButton("🍳 АВТО ГОТОВКА", 125, function() OpenAutoCookGUI
 CreateMenuButton("🔧 АВТО РЕМОНТ", 165, function() OpenAutoRepairGUI() end)
 CreateMenuButton("💰 ПРОДАТЬ", 205, function() OpenSellGUI() end)
 
-print("Выживание на задних улицах + Авто ремонт загружено!")
+print("Выживание на задних улицах загружено!")
 print("Телепортов: " .. #FarmPoints)
-print("Логика ремонта: создание → таймер → забор → возврат → проверка")
+print("Фарм завода: D каждые 30 секунд!")
