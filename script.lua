@@ -1,4 +1,4 @@
--- Solaris GUI v15.7 (Load Ship by Link)
+-- Solaris GUI v16.2 (Final with Links)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -9,7 +9,7 @@ local Mouse = LocalPlayer:GetMouse()
 local SpawnPoint = nil
 local CustomPoints = {}
 local GUIHidden = false
-local Version = "15.7"
+local Version = "16.2"
 
 local FlyEnabled = false
 local NoclipEnabled = false
@@ -137,7 +137,7 @@ local function CreateWindow(windowName, title, width, height)
 end
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 260, 0, 290)
+MainFrame.Size = UDim2.new(0, 260, 0, 330)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
@@ -644,7 +644,6 @@ CreateButton("👤", "ТП К ИГРОКУ", function()
     serverList.CanvasSize = UDim2.new(0, 0, 0, sy + 3)
 end)
 
--- Кнопка "ИГРЫ"
 CreateButton("🎮", "ИГРЫ", function()
     local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 300, 200)
     
@@ -668,7 +667,6 @@ CreateButton("🎮", "ИГРЫ", function()
     survivalBtn.TextSize = 10
     survivalBtn.Parent = frame
     
-    -- Загрузка "Построй корабль" по ссылке
     local shipLoading = false
     shipBtn.MouseButton1Click:Connect(function()
         if shipLoading then return end
@@ -684,11 +682,10 @@ CreateButton("🎮", "ИГРЫ", function()
         end)
     end)
     
-    -- Загрузка "Выживание" по ссылке
-    local isLoading = false
+    local survivalLoading = false
     survivalBtn.MouseButton1Click:Connect(function()
-        if isLoading then return end
-        isLoading = true
+        if survivalLoading then return end
+        survivalLoading = true
         survivalBtn.Text = "⏳ ЗАГРУЗКА..."
         task.spawn(function()
             local success, err = pcall(function()
@@ -696,7 +693,7 @@ CreateButton("🎮", "ИГРЫ", function()
             end)
             if not success then print("Ошибка: " .. tostring(err)) end
             survivalBtn.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
-            isLoading = false
+            survivalLoading = false
         end)
     end)
 end)
