@@ -1,0 +1,514 @@
+-- Авто ремонт (полный скрипт для загрузки по ссылке)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local CoreGui = game:GetService("CoreGui")
+
+local Colors = {
+    Frame = Color3.fromRGB(255, 255, 255),
+    TitleBar = Color3.fromRGB(230, 230, 240),
+    Button = Color3.fromRGB(240, 240, 245),
+    ButtonHover = Color3.fromRGB(220, 220, 230),
+    Text = Color3.fromRGB(30, 30, 40),
+    Input = Color3.fromRGB(235, 235, 240),
+    ScrollBg = Color3.fromRGB(245, 245, 248)
+}
+
+local function getCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+local function MakeDraggable(frame, titleBar)
+    local isDragging = false
+    local dragStart = nil
+    local frameStart = nil
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = true
+            dragStart = input.Position
+            frameStart = frame.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement and dragStart and frameStart then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(frameStart.X.Scale, frameStart.X.Offset + delta.X, frameStart.Y.Scale, frameStart.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then isDragging = false end
+    end)
+end
+
+-- Функция получения количества предмета
+local function getItemStackCount(toolObject)
+    if not toolObject then return 0 end
+    for _, child in ipairs(toolObject:GetChildren()) do
+        if child:IsA("IntValue") or child:IsA("NumberValue") then
+            local cName = string.lower(child.Name)
+            if string.find(cName, "amount") or string.find(cName, "count") or string.find(cName, "value") or string.find(cName, "stack") then
+                return tonumber(child.Value) or 1
+            end
+        end
+    end
+    local attributes = toolObject:GetAttributes()
+    for attrName, attrValue in pairs(attributes) do
+        local aName = string.lower(attrName)
+        if (string.find(aName, "amount") or string.find(aName, "count") or string.find(aName, "value") or string.find(aName, "stack")) and typeof(attrValue) == "number" then
+            return attrValue
+        end
+    end
+    return 1
+end
+
+local function getTotalItemCount(itemName)
+    local totalCount = 0
+    local bp = LocalPlayer:FindFirstChild("Backpack")
+    if bp then
+        for _, item in ipairs(bp:GetChildren()) do
+            if item.Name == itemName then
+                totalCount = totalCount + getItemStackCount(item)
+            end
+        end
+    end
+    if LocalPlayer.Character then
+        for _, item in ipairs(LocalPlayer.Character:GetChildren()) do
+            if item.Name == itemName then
+                totalCount = totalCount + getItemStackCount(item)
+            end
+        end
+    end
+    return totalCount
+end
+
+local function simulateKeyPressE()
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(0.15)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+end
+
+local function preciseMouseClick(x, y)
+    VirtualInputManager:SendMouseMoveEvent(x, y, game)
+    task.wait(0.15)
+    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+    task.wait(0.08)
+    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+end
+
+local function dragMouseDown(startX, startY, endX, endY)
+    VirtualInputManager:SendMouseMoveEvent(startX, startY, game)
+    task.wait(0.15)
+    VirtualInputManager:SendMouseButtonEvent(startX, startY, 0, true, game, 1)
+    task.wait(0.1)
+    local steps = 15
+    for i = 1, steps do
+        local currentX = startX + (endX - startX) * (i / steps)
+        local currentY = startY + (endY - startY) * (i / steps)
+        VirtualInputManager:SendMouseMoveEvent(currentX, currentY, game)
+        task.wait(0.02)
+    end
+    task.wait(0.15)
+    VirtualInputManager:SendMouseButtonEvent(endX, endY, 0, false, game, 1)
+    task.wait(0.2)
+end
+
+local function scrollAt(x, y, direction)
+    VirtualInputManager:SendMouseMoveEvent(x, y, game)
+    task.wait(0.1)
+    VirtualInputManager:SendMouseWheelEvent(x, y, direction, game)
+    task.wait(0.1)
+end
+
+-- Craft функции
+local function craftLaptop()
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(1.2)
+    dragMouseDown(1654, 489, 1654, 820)
+    preciseMouseClick(955, 629)
+    task.wait(0.8)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+end
+
+local function pickupLaptop(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    for i = 65, 1, -1 do
+        statusLabel.Text = "Статус: Ноут таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    statusLabel.Text = "Статус: Забор ноута..."
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+local function craftFlashlight()
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(1.0)
+    dragMouseDown(1653, 589, 1654, 427)
+    preciseMouseClick(921, 500)
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+end
+
+local function pickupFlashlight(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    for i = 14, 1, -1 do
+        statusLabel.Text = "Статус: Фонарик таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    statusLabel.Text = "Статус: Забор фонарика..."
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+local function craftWatch()
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(1.0)
+    for i = 1, 8 do scrollAt(846, 587, -1) end
+    task.wait(0.3)
+    preciseMouseClick(978, 737)
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+end
+
+local function pickupWatch(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    for i = 33, 1, -1 do
+        statusLabel.Text = "Статус: Часы таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    statusLabel.Text = "Статус: Забор часов..."
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+local function craftCamera()
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(1.0)
+    for i = 1, 8 do scrollAt(956, 664, 1) end
+    task.wait(0.3)
+    preciseMouseClick(1162, 890)
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+end
+
+local function pickupCamera(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    for i = 33, 1, -1 do
+        statusLabel.Text = "Статус: Камера таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    statusLabel.Text = "Статус: Забор камеры..."
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+local function craftTV()
+    local targetPosition = Vector3.new(-276, 4, 43)
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(1.0)
+    dragMouseDown(1651, 485, 1652, 738)
+    preciseMouseClick(923, 587)
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+end
+
+local function pickupTV(statusLabel)
+    local targetPosition = Vector3.new(-276, 4, 43)
+    for i = 65, 1, -1 do
+        statusLabel.Text = "Статус: Телек таймер " .. i .. "с..."
+        task.wait(1)
+    end
+    statusLabel.Text = "Статус: Забор телека..."
+    local char = getCharacter()
+    local rootPart = char:WaitForChild("HumanoidRootPart")
+    local savedPosition = rootPart.CFrame
+    rootPart.CFrame = CFrame.lookAt(targetPosition, targetPosition + Vector3.new(0, 0, -1))
+    task.wait(0.5)
+    simulateKeyPressE()
+    task.wait(0.5)
+    rootPart.CFrame = savedPosition * CFrame.new(0, 4, 0)
+    task.wait(0.5)
+    statusLabel.Text = "Статус: Сканирование..."
+end
+
+-- Главное меню
+local SG = Instance.new("ScreenGui")
+SG.Name = "AutoRepairGUI"
+SG.ResetOnSpawn = false
+SG.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 250, 0, 350)
+MainFrame.Position = UDim2.new(0.7, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Colors.Frame
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = SG
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+
+local TopBar = Instance.new("TextLabel")
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+TopBar.BackgroundColor3 = Colors.TitleBar
+TopBar.Text = "🔧 АВТО РЕМОНТ"
+TopBar.TextColor3 = Colors.Text
+TopBar.Font = Enum.Font.GothamBold
+TopBar.TextSize = 11
+TopBar.Parent = MainFrame
+
+MakeDraggable(MainFrame, TopBar)
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 22, 0, 22)
+CloseBtn.Position = UDim2.new(1, -27, 0, 4)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Colors.Text
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 10
+CloseBtn.Parent = TopBar
+CloseBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
+
+local activeToggles = {}
+local isWorking = false
+
+local itemsWindow = Instance.new("Frame")
+itemsWindow.Size = UDim2.new(0.9, 0, 0, 80)
+itemsWindow.Position = UDim2.new(0.05, 0, 0, 35)
+itemsWindow.BackgroundColor3 = Colors.ScrollBg
+itemsWindow.Parent = MainFrame
+
+local itemsLabel = Instance.new("TextLabel")
+itemsLabel.Size = UDim2.new(1, -10, 0, 75)
+itemsLabel.Position = UDim2.new(0, 5, 0, 3)
+itemsLabel.BackgroundTransparency = 1
+itemsLabel.TextColor3 = Colors.Text
+itemsLabel.Font = Enum.Font.Gotham
+itemsLabel.TextSize = 8
+itemsLabel.TextWrapped = true
+itemsLabel.Parent = itemsWindow
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(0.9, 0, 0, 25)
+statusLabel.Position = UDim2.new(0.05, 0, 0, 120)
+statusLabel.BackgroundColor3 = Colors.TitleBar
+statusLabel.Text = "Статус: Ожидание"
+statusLabel.TextColor3 = Colors.Text
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextSize = 9
+statusLabel.Parent = MainFrame
+
+local function createRepairToggle(name, yPos, callback)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = UDim2.new(0.9, 0, 0, 35)
+    toggleFrame.Position = UDim2.new(0.05, 0, 0, yPos)
+    toggleFrame.BackgroundColor3 = Colors.Button
+    toggleFrame.Parent = MainFrame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.65, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Colors.Text
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 10
+    label.Parent = toggleFrame
+    
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0.3, 0, 0.7, 0)
+    toggleBtn.Position = UDim2.new(0.68, 0, 0.15, 0)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+    toggleBtn.Text = "ВЫКЛ"
+    toggleBtn.TextColor3 = Colors.Text
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.TextSize = 9
+    toggleBtn.Parent = toggleFrame
+    
+    local enabled = false
+    toggleBtn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        if enabled then
+            toggleBtn.Text = "ВКЛ"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 255, 150)
+        else
+            toggleBtn.Text = "ВЫКЛ"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+        end
+        callback(enabled)
+    end)
+end
+
+local function updateItemsWindow()
+    local text = ""
+    if activeToggles["flashlight"] then
+        text = text .. "🔦 ФОНАРИК:\n"
+        text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/2\n"
+        text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/1\n"
+        text = text .. "Бутылка: " .. getTotalItemCount("Trash_Bottle") .. "/1\n"
+        text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/1\n"
+    end
+    if activeToggles["watch"] then
+        if text ~= "" then text = text .. "\n" end
+        text = text .. "🕐 ЧАСЫ:\n"
+        text = text .. "Часы: " .. getTotalItemCount("Trash_Watch") .. "/1\n"
+        text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/1\n"
+        text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/3"
+    end
+    if activeToggles["camera"] then
+        if text ~= "" then text = text .. "\n" end
+        text = text .. "📷 КАМЕРА:\n"
+        text = text .. "Камера: " .. getTotalItemCount("Trash_Camera") .. "/1\n"
+        text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/2\n"
+        text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/2\n"
+        text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/2"
+    end
+    if activeToggles["tv"] then
+        if text ~= "" then text = text .. "\n" end
+        text = text .. "📺 ТЕЛЕК:\n"
+        text = text .. "ТВ: " .. getTotalItemCount("Trash_BrokenTV") .. "/1\n"
+        text = text .. "Фольга: " .. getTotalItemCount("Trash_Foil") .. "/2\n"
+        text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/2\n"
+        text = text .. "Пластик: " .. getTotalItemCount("Trash_Plastic") .. "/3"
+    end
+    if activeToggles["laptop"] then
+        if text ~= "" then text = text .. "\n" end
+        text = text .. "💻 НОУТ:\n"
+        text = text .. "ТВ: " .. getTotalItemCount("Trash_BrokenTV") .. "/1\n"
+        text = text .. "Материнка: " .. getTotalItemCount("Trash_Motherboard") .. "/1\n"
+        text = text .. "Гвозди: " .. getTotalItemCount("Trash_Nail") .. "/4\n"
+        text = text .. "Диск: " .. getTotalItemCount("Trash_HardDrive") .. "/1"
+    end
+    if text == "" then text = "Включите переключатель" end
+    itemsLabel.Text = text
+end
+
+task.spawn(function()
+    while SG.Parent do
+        updateItemsWindow()
+        task.wait(0.1)
+    end
+end)
+
+task.spawn(function()
+    while SG.Parent do
+        task.wait(0.1)
+        if not isWorking then
+            if activeToggles["flashlight"] then
+                if getTotalItemCount("Trash_Bottle") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Nail") >= 1 and getTotalItemCount("Trash_Plastic") >= 2 then
+                    isWorking = true
+                    statusLabel.Text = "Статус: Создание фонарика..."
+                    craftFlashlight()
+                    pickupFlashlight(statusLabel)
+                    isWorking = false
+                end
+            end
+            if activeToggles["watch"] and not isWorking then
+                if getTotalItemCount("Trash_Watch") >= 1 and getTotalItemCount("Trash_Foil") >= 1 and getTotalItemCount("Trash_Plastic") >= 3 then
+                    isWorking = true
+                    statusLabel.Text = "Статус: Создание часов..."
+                    craftWatch()
+                    pickupWatch(statusLabel)
+                    isWorking = false
+                end
+            end
+            if activeToggles["camera"] and not isWorking then
+                if getTotalItemCount("Trash_Camera") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 2 then
+                    isWorking = true
+                    statusLabel.Text = "Статус: Создание камеры..."
+                    craftCamera()
+                    pickupCamera(statusLabel)
+                    isWorking = false
+                end
+            end
+            if activeToggles["tv"] and not isWorking then
+                if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Foil") >= 2 and getTotalItemCount("Trash_Nail") >= 2 and getTotalItemCount("Trash_Plastic") >= 3 then
+                    isWorking = true
+                    statusLabel.Text = "Статус: Создание телека..."
+                    craftTV()
+                    pickupTV(statusLabel)
+                    isWorking = false
+                end
+            end
+            if activeToggles["laptop"] and not isWorking then
+                if getTotalItemCount("Trash_BrokenTV") >= 1 and getTotalItemCount("Trash_Motherboard") >= 1 and getTotalItemCount("Trash_Nail") >= 4 and getTotalItemCount("Trash_HardDrive") >= 1 then
+                    isWorking = true
+                    statusLabel.Text = "Статус: Создание ноута..."
+                    craftLaptop()
+                    pickupLaptop(statusLabel)
+                    isWorking = false
+                end
+            end
+        end
+    end
+end)
+
+createRepairToggle("🔦 Фонарик", 150, function(enabled) activeToggles["flashlight"] = enabled end)
+createRepairToggle("🕐 Часы", 190, function(enabled) activeToggles["watch"] = enabled end)
+createRepairToggle("📷 Камера", 230, function(enabled) activeToggles["camera"] = enabled end)
+createRepairToggle("📺 Телек", 270, function(enabled) activeToggles["tv"] = enabled end)
+createRepairToggle("💻 Ноут", 310, function(enabled) activeToggles["laptop"] = enabled end)
+
+print("Авто ремонт загружен!")
