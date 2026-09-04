@@ -1,13 +1,13 @@
--- Solaris GUI v16.2 (Final with Links + Key System + ALL Features)
+-- Solaris GUI v16.2 (Key + Links)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
--- КЛЮЧ
 local KEY = "SIGMA-PASHA"
 local isActivated = false
+local isEnabled = true
 
 -- Окно ключа
 local KeyScreenGui = Instance.new("ScreenGui")
@@ -85,10 +85,8 @@ function loadGUI()
     local AutoClickerConnection = nil
 
     local KeyCooldown = {}
-
     local FlySettings = {Speed = 50, MinSpeed = 10, MaxSpeed = 500}
     local AutoClickerSettings = {Speed = 10, MinSpeed = 1, MaxSpeed = 50}
-
     local QuickPlayers = {"Dfgvmg456", "minti", "pro_GREEN001", "Wr_White", "pasha999938", "Dfgvmg2"}
 
     local Keys = {
@@ -100,6 +98,8 @@ function loadGUI()
         ESP = Enum.KeyCode.X,
         AutoClicker = Enum.KeyCode.LeftBracket,
         AutoClickerSpeed = Enum.KeyCode.Equals,
+        ToggleAll = Enum.KeyCode.LeftAlt,
+        Aim = Enum.KeyCode.B,
     }
 
     local Colors = {
@@ -258,6 +258,7 @@ function loadGUI()
     end
 
     local function ToggleFly()
+        if not isEnabled then return end
         FlyEnabled = not FlyEnabled
         if FlyEnabled then
             if FlyConnection then FlyConnection:Disconnect() end
@@ -278,10 +279,8 @@ function loadGUI()
                 if moveDirection.Magnitude > 0 then
                     moveDirection = moveDirection.Unit
                     rootPart.Velocity = moveDirection * FlySettings.Speed
-                    rootPart.AssemblyLinearVelocity = moveDirection * FlySettings.Speed
                 else
                     rootPart.Velocity = Vector3.zero
-                    rootPart.AssemblyLinearVelocity = Vector3.zero
                 end
             end)
         else
@@ -292,6 +291,7 @@ function loadGUI()
     end
 
     local function ToggleNoclip()
+        if not isEnabled then return end
         NoclipEnabled = not NoclipEnabled
         if NoclipEnabled then
             if NoclipConnection then NoclipConnection:Disconnect() end
@@ -315,6 +315,7 @@ function loadGUI()
     end
 
     local function ToggleESP()
+        if not isEnabled then return end
         ESPEnabled = not ESPEnabled
         if ESPEnabled then
             for _, player in ipairs(Players:GetPlayers()) do
@@ -347,6 +348,7 @@ function loadGUI()
     end
 
     local function ToggleAutoClicker()
+        if not isEnabled then return end
         AutoClickerEnabled = not AutoClickerEnabled
         if AutoClickerEnabled then
             if AutoClickerConnection then AutoClickerConnection:Disconnect() end
@@ -365,46 +367,6 @@ function loadGUI()
         else
             if AutoClickerConnection then AutoClickerConnection:Disconnect() AutoClickerConnection = nil end
         end
-    end
-
-    local function OpenAutoClickerSpeedWindow()
-        local frame = CreateWindow("AutoClickerSpeedWindow", "⚡ СКОРОСТЬ КЛИКЕРА", 280, 200)
-        local speedLabel = Instance.new("TextLabel")
-        speedLabel.Size = UDim2.new(0.9, 0, 0, 35)
-        speedLabel.Position = UDim2.new(0.05, 0, 0, 40)
-        speedLabel.BackgroundColor3 = Colors.Button
-        speedLabel.Text = "Скорость: " .. AutoClickerSettings.Speed .. "/сек"
-        speedLabel.TextColor3 = Colors.Text
-        speedLabel.Font = Enum.Font.GothamBold
-        speedLabel.TextSize = 12
-        speedLabel.Parent = frame
-        local speedInput = Instance.new("TextBox")
-        speedInput.Size = UDim2.new(0.9, 0, 0, 30)
-        speedInput.Position = UDim2.new(0.05, 0, 0, 80)
-        speedInput.BackgroundColor3 = Colors.Input
-        speedInput.PlaceholderText = "1-50"
-        speedInput.Text = tostring(AutoClickerSettings.Speed)
-        speedInput.TextColor3 = Colors.Text
-        speedInput.Font = Enum.Font.Gotham
-        speedInput.TextSize = 11
-        speedInput.Parent = frame
-        local applyBtn = Instance.new("TextButton")
-        applyBtn.Size = UDim2.new(0.9, 0, 0, 30)
-        applyBtn.Position = UDim2.new(0.05, 0, 0, 115)
-        applyBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-        applyBtn.Text = "✅ ПРИМЕНИТЬ"
-        applyBtn.TextColor3 = Colors.Text
-        applyBtn.Font = Enum.Font.GothamBold
-        applyBtn.TextSize = 11
-        applyBtn.Parent = frame
-        applyBtn.MouseButton1Click:Connect(function()
-            local newSpeed = tonumber(speedInput.Text)
-            if newSpeed then
-                AutoClickerSettings.Speed = math.clamp(newSpeed, AutoClickerSettings.MinSpeed, AutoClickerSettings.MaxSpeed)
-                speedLabel.Text = "Скорость: " .. AutoClickerSettings.Speed .. "/сек"
-                speedInput.Text = tostring(AutoClickerSettings.Speed)
-            end
-        end)
     end
 
     local yPos = 40
@@ -427,14 +389,15 @@ function loadGUI()
     end
 
     CreateButton("💾", "СОХРАНИТЬ СПАВН", function()
+        if not isEnabled then return end
         local char = getCharacter()
         if char and char:FindFirstChild("HumanoidRootPart") then
             SpawnPoint = char.HumanoidRootPart.CFrame
-            print("Спавн сохранён!")
         end
     end)
 
     CreateButton("🔍", "СКАНЕР ПАРТ", function()
+        if not isEnabled then return end
         local ScannerFrame = CreateWindow("ScannerWindow", "🔍 СКАНЕР", 320, 340)
         local isSelecting = false
         local currentHighlight = Instance.new("Highlight")
@@ -443,82 +406,17 @@ function loadGUI()
         ToggleSelector.Position = UDim2.new(0.05, 0, 0, 40)
         ToggleSelector.BackgroundColor3 = Colors.Button
         ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
-        ToggleSelector.TextColor3 = Color3.fromRGB(100, 100, 120)
+        ToggleSelector.TextColor3 = Colors.Text
         ToggleSelector.Font = Enum.Font.GothamBold
         ToggleSelector.TextSize = 11
         ToggleSelector.Parent = ScannerFrame
-        local InfoContainer = Instance.new("Frame")
-        InfoContainer.Size = UDim2.new(0.9, 0, 0, 230)
-        InfoContainer.Position = UDim2.new(0.05, 0, 0, 85)
-        InfoContainer.BackgroundColor3 = Colors.ScrollBg
-        InfoContainer.Parent = ScannerFrame
-        local NameLabel = Instance.new("TextLabel")
-        NameLabel.Size = UDim2.new(0.94, 0, 0, 22)
-        NameLabel.Position = UDim2.new(0.03, 0, 0, 5)
-        NameLabel.BackgroundTransparency = 1
-        NameLabel.Text = "Выбрано: Ничего"
-        NameLabel.TextColor3 = Colors.Text
-        NameLabel.Font = Enum.Font.GothamBold
-        NameLabel.TextSize = 12
-        NameLabel.Parent = InfoContainer
-        local PathLabel = Instance.new("TextBox")
-        PathLabel.Size = UDim2.new(0.94, 0, 0, 40)
-        PathLabel.Position = UDim2.new(0.03, 0, 0, 30)
-        PathLabel.BackgroundColor3 = Colors.Input
-        PathLabel.Text = "Путь появится здесь..."
-        PathLabel.TextColor3 = Colors.Text
-        PathLabel.Font = Enum.Font.Code
-        PathLabel.TextSize = 10
-        PathLabel.TextWrapped = true
-        PathLabel.ClearTextOnFocus = false
-        PathLabel.TextEditable = false
-        PathLabel.Parent = InfoContainer
-        local ChildrenScroll = Instance.new("ScrollingFrame")
-        ChildrenScroll.Size = UDim2.new(0.94, 0, 0, 150)
-        ChildrenScroll.Position = UDim2.new(0.03, 0, 0, 75)
-        ChildrenScroll.BackgroundTransparency = 1
-        ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-        ChildrenScroll.ScrollBarThickness = 4
-        ChildrenScroll.Parent = InfoContainer
-        local function getCleanPath(obj)
-            local path = obj.Name
-            local parent = obj.Parent
-            while parent and parent ~= game do
-                local safeName = parent.Name
-                local needsQuotes = string.find(safeName, " ") or string.find(safeName, "[%p]") or string.match(safeName, "^%d")
-                if needsQuotes then path = '["' .. safeName .. '"]' .. "." .. path else path = safeName .. "." .. path end
-                parent = parent.Parent
-            end
-            return 'game:GetService("Workspace").' .. path
-        end
-        local function updateChildrenList(obj)
-            for _, child in pairs(ChildrenScroll:GetChildren()) do
-                if child:IsA("TextLabel") then child:Destroy() end
-            end
-            local children = obj:GetChildren()
-            ChildrenScroll.CanvasSize = UDim2.new(0, 0, 0, #children * 20)
-            for i, child in ipairs(children) do
-                local itemLabel = Instance.new("TextLabel")
-                itemLabel.Size = UDim2.new(1, 0, 0, 18)
-                itemLabel.BackgroundColor3 = Color3.fromRGB(230, 230, 235)
-                itemLabel.Font = Enum.Font.Gotham
-                itemLabel.Text = " 📦 " .. child.Name
-                itemLabel.TextColor3 = Colors.Text
-                itemLabel.TextSize = 10
-                itemLabel.Parent = ChildrenScroll
-            end
-        end
         if ScannerConnection then ScannerConnection:Disconnect() end
         ScannerConnection = RunService.RenderStepped:Connect(function()
             if isSelecting and Mouse.Target then currentHighlight.Parent = Mouse.Target else currentHighlight.Parent = nil end
         end)
         Mouse.Button1Down:Connect(function()
             if isSelecting and Mouse.Target then
-                local target = Mouse.Target
-                NameLabel.Text = "Имя: " .. target.Name
-                PathLabel.Text = getCleanPath(target)
-                updateChildrenList(target)
-                pcall(function() setclipboard(getCleanPath(target)) end)
+                pcall(function() setclipboard(tostring(Mouse.Target)) end)
                 isSelecting = false
                 ToggleSelector.Text = "СКАНЕР: ВЫКЛ (НАЖМИ)"
             end
@@ -530,6 +428,7 @@ function loadGUI()
     end)
 
     CreateButton("📍", "ТОЧКИ ТЕЛЕПОРТА", function()
+        if not isEnabled then return end
         local frame = CreateWindow("PointsWindow", "📍 ТОЧКИ", 300, 300)
         local createBtn = Instance.new("TextButton")
         createBtn.Size = UDim2.new(0.9, 0, 0, 32)
@@ -545,7 +444,6 @@ function loadGUI()
         list.Position = UDim2.new(0.05, 0, 0, 77)
         list.BackgroundColor3 = Colors.ScrollBg
         list.ScrollBarThickness = 4
-        list.CanvasSize = UDim2.new(0, 0, 0, 0)
         list.Parent = frame
         local function refresh()
             for _, child in ipairs(list:GetChildren()) do if child:IsA("Frame") then child:Destroy() end end
@@ -637,6 +535,7 @@ function loadGUI()
     end)
 
     CreateButton("👤", "ТП К ИГРОКУ", function()
+        if not isEnabled then return end
         local frame = CreateWindow("TeleportWindow", "👤 ТП К ИГРОКУ", 280, 380)
         local tb = Instance.new("TextBox")
         tb.Size = UDim2.new(0.9, 0, 0, 30)
@@ -735,11 +634,12 @@ function loadGUI()
     end)
 
     CreateButton("⚙️", "НАСТРОЙКИ", function()
-        local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ", 300, 310)
+        local frame = CreateWindow("SettingsWindow", "⚙️ НАСТРОЙКИ", 300, 340)
         local names = {
             HideGUI = "👁️ Скрыть", Fly = "✈️ Полёт", Noclip = "👻 Ноклип",
             TPMouse = "🖱️ ТП мышь", CopyCoords = "📋 Координаты", ESP = "🔴 ESP",
-            AutoClicker = "🖱️ Кликер", AutoClickerSpeed = "⚡ Скорость кликера"
+            AutoClicker = "🖱️ Кликер", AutoClickerSpeed = "⚡ Скорость кликера",
+            ToggleAll = "🔘 ALT вкл/выкл", Aim = "🎯 B аим"
         }
         local y = 40
         for key, display in pairs(names) do
@@ -781,6 +681,28 @@ function loadGUI()
         if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
         if KeyCooldown[input.KeyCode] and tick() - KeyCooldown[input.KeyCode] < 0.3 then return end
         KeyCooldown[input.KeyCode] = tick()
+        
+        if input.KeyCode == Keys.ToggleAll then
+            isEnabled = not isEnabled
+            if isEnabled then
+                print("✅ Скрипт включён")
+            else
+                print("❌ Скрипт выключен")
+                if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil FlyEnabled = false end
+                if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil NoclipEnabled = false end
+                if ESPConnection then ESPConnection:Disconnect() ESPConnection = nil ESPEnabled = false end
+                if AutoClickerConnection then AutoClickerConnection:Disconnect() AutoClickerConnection = nil AutoClickerEnabled = false end
+            end
+            return
+        end
+        
+        if not isEnabled then return end
+        
+        if input.KeyCode == Keys.Aim then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/p99910346-eng/solaris/refs/heads/main/aim"))()
+            return
+        end
+        
         if input.KeyCode == Keys.HideGUI then
             GUIHidden = not GUIHidden
             MainFrame.Visible = not GUIHidden
@@ -793,7 +715,45 @@ function loadGUI()
         if input.KeyCode == Keys.Noclip then ToggleNoclip() end
         if input.KeyCode == Keys.ESP then ToggleESP() end
         if input.KeyCode == Keys.AutoClicker then ToggleAutoClicker() end
-        if input.KeyCode == Keys.AutoClickerSpeed then OpenAutoClickerSpeedWindow() end
+        if input.KeyCode == Keys.AutoClickerSpeed then
+            local frame = CreateWindow("AutoClickerSpeedWindow", "⚡ СКОРОСТЬ КЛИКЕРА", 280, 200)
+            local speedLabel = Instance.new("TextLabel")
+            speedLabel.Size = UDim2.new(0.9, 0, 0, 35)
+            speedLabel.Position = UDim2.new(0.05, 0, 0, 40)
+            speedLabel.BackgroundColor3 = Colors.Button
+            speedLabel.Text = "Скорость: " .. AutoClickerSettings.Speed .. "/сек"
+            speedLabel.TextColor3 = Colors.Text
+            speedLabel.Font = Enum.Font.GothamBold
+            speedLabel.TextSize = 12
+            speedLabel.Parent = frame
+            local speedInput = Instance.new("TextBox")
+            speedInput.Size = UDim2.new(0.9, 0, 0, 30)
+            speedInput.Position = UDim2.new(0.05, 0, 0, 80)
+            speedInput.BackgroundColor3 = Colors.Input
+            speedInput.PlaceholderText = "1-50"
+            speedInput.Text = tostring(AutoClickerSettings.Speed)
+            speedInput.TextColor3 = Colors.Text
+            speedInput.Font = Enum.Font.Gotham
+            speedInput.TextSize = 11
+            speedInput.Parent = frame
+            local applyBtn = Instance.new("TextButton")
+            applyBtn.Size = UDim2.new(0.9, 0, 0, 30)
+            applyBtn.Position = UDim2.new(0.05, 0, 0, 115)
+            applyBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+            applyBtn.Text = "✅ ПРИМЕНИТЬ"
+            applyBtn.TextColor3 = Colors.Text
+            applyBtn.Font = Enum.Font.GothamBold
+            applyBtn.TextSize = 11
+            applyBtn.Parent = frame
+            applyBtn.MouseButton1Click:Connect(function()
+                local newSpeed = tonumber(speedInput.Text)
+                if newSpeed then
+                    AutoClickerSettings.Speed = math.clamp(newSpeed, AutoClickerSettings.MinSpeed, AutoClickerSettings.MaxSpeed)
+                    speedLabel.Text = "Скорость: " .. AutoClickerSettings.Speed .. "/сек"
+                    speedInput.Text = tostring(AutoClickerSettings.Speed)
+                end
+            end)
+        end
         if input.KeyCode == Keys.TPMouse then
             local char = getCharacter()
             if char and char:FindFirstChild("HumanoidRootPart") then
@@ -835,5 +795,6 @@ function loadGUI()
     end)
 
     print("Solaris GUI v" .. Version .. " загружен!")
-    print("Ключ активирован: SIGMA-PASHA")
+    print("Ключ: SIGMA-PASHA")
+    print("ALT - вкл/выкл | B - аим")
 end
