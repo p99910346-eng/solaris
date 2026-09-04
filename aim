@@ -1,0 +1,624 @@
+-- Modern GUI, Aimbot and ESP for Delta (Русская версия с системой настройки игроков)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Конфигурация
+local AimbotEnabled = true
+local AimTarget = "Head" -- "Head" или "Torso"
+local AimKey = Enum.UserInputType.MouseButton2 -- Правая кнопка мыши
+local ToggleKey = Enum.KeyCode.Z -- Клавиша Z для вкл/выкл аимбота
+local IgnoredTeamColor = "None"
+local IsAiming = false
+local AimSmoothness = 0.3 -- Плавность наведения (0 - мгновенно, 1 - очень плавно)
+local AimRadius = 300 -- Радиус захвата цели в пикселях
+local IsMinimized = false -- Состояние сворачивания
+
+-- Система настройки игроков
+local TargetedPlayer = nil -- Конкретный игрок для наведения
+local TargetSpecificPlayer = false -- Включить наведение на конкретного игрока
+local WhitelistedPlayers = {} -- Игроки, которых не трогаем
+local BlacklistedPlayers = {} -- Приоритетные цели
+
+-- Создание интерфейса
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DeltaPremiumHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Главное окно
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 280, 0, 560)
+MainFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(50, 50, 60)
+UIStroke.Parent = MainFrame
+
+-- Заголовок
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -80, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+Title.Text = "  DELTA HUB v3.3"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- Кнопка сворачивания
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Size = UDim2.new(0, 35, 0, 35)
+MinimizeButton.Position = UDim2.new(1, -76, 0, 3)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+MinimizeButton.Text = "—"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.Font = Enum.Font.SourceSansBold
+MinimizeButton.TextSize = 18
+MinimizeButton.Parent = MainFrame
+
+local MinimizeCorner = Instance.new("UICorner")
+MinimizeCorner.CornerRadius = UDim.new(0, 6)
+MinimizeCorner.Parent = MinimizeButton
+
+-- Кнопка закрытия
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 35, 0, 35)
+CloseButton.Position = UDim2.new(1, -38, 0, 3)
+CloseButton.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+CloseButton.Text = "✕"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.TextSize = 18
+CloseButton.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseButton
+
+-- Список всех элементов для скрытия
+local HideableElements = {}
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Функция сворачивания
+MinimizeButton.MouseButton1Click:Connect(function()
+    IsMinimized = not IsMinimized
+    if IsMinimized then
+        MainFrame.Size = UDim2.new(0, 280, 0, 40) -- Оставляем только заголовок
+        MinimizeButton.Text = "+"
+        for _, element in pairs(HideableElements) do
+            element.Visible = false
+        end
+    else
+        MainFrame.Size = UDim2.new(0, 280, 0, 560) -- Возвращаем полный размер
+        MinimizeButton.Text = "—"
+        for _, element in pairs(HideableElements) do
+            element.Visible = true
+        end
+    end
+end)
+
+-- Функция создания кнопок меню
+local function createMenuButton(text, yPosition, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Position = UDim2.new(0.05, 0, 0, yPosition)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(230, 230, 230)
+    btn.Font = Enum.Font.SourceSansSemibold
+    btn.TextSize = 14
+    btn.Parent = MainFrame
+    
+    -- Добавляем в список скрываемых элементов
+    table.insert(HideableElements, btn)
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = btn
+
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Thickness = 1
+    btnStroke.Color = Color3.fromRGB(60, 60, 75)
+    btnStroke.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        callback(btn)
+    end)
+    
+    return btn
+end
+
+-- Создание элементов интерфейса
+local AimToggleBtn = createMenuButton("Аимбот: ВКЛ (Z)", 55, function(btn)
+    AimbotEnabled = not AimbotEnabled
+    if AimbotEnabled then
+        btn.Text = "Аимбот: ВКЛ (Z)"
+        btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    else
+        btn.Text = "Аимбот: ВЫКЛ (Z)"
+        btn.BackgroundColor3 = Color3.fromRGB(55, 30, 30)
+    end
+end)
+
+local TargetBtn = createMenuButton("Цель: ГОЛОВА", 100, function(btn)
+    if AimTarget == "Head" then
+        AimTarget = "Torso"
+        btn.Text = "Цель: ТЕЛО"
+    else
+        AimTarget = "Head"
+        btn.Text = "Цель: ГОЛОВА"
+    end
+end)
+
+local TeamIgnoreBtn = createMenuButton("Игнор команды: НЕТ", 145, function(btn)
+    if IgnoredTeamColor == "None" then
+        if LocalPlayer.Team then
+            IgnoredTeamColor = tostring(LocalPlayer.Team.TeamColor)
+            btn.Text = "Игнор: МОЯ КОМАНДА"
+            btn.BackgroundColor3 = Color3.fromRGB(40, 50, 40)
+        else
+            IgnoredTeamColor = "Bright blue"
+            btn.Text = "Игнор: Синяя команда"
+        end
+    elseif IgnoredTeamColor == "Bright blue" then
+        IgnoredTeamColor = "Bright red"
+        btn.Text = "Игнор: Красная команда"
+    else
+        IgnoredTeamColor = "None"
+        btn.Text = "Игнор команды: НЕТ"
+        btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    end
+end)
+
+-- Кнопка наведения на конкретного игрока
+local SpecificTargetBtn = createMenuButton("Цель-игрок: ВЫКЛ", 190, function(btn)
+    TargetSpecificPlayer = not TargetSpecificPlayer
+    if TargetSpecificPlayer then
+        btn.Text = "Цель-игрок: ВКЛ"
+        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        showPlayerSelection()
+    else
+        btn.Text = "Цель-игрок: ВЫКЛ"
+        btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+        TargetedPlayer = nil
+    end
+end)
+
+-- Кнопка белого списка
+local WhitelistBtn = createMenuButton("Белый список: 0 игроков", 235, function(btn)
+    showWhitelistMenu()
+end)
+
+-- Кнопка черного списка
+local BlacklistBtn = createMenuButton("Черный список: 0 игроков", 280, function(btn)
+    showBlacklistMenu()
+end)
+
+-- Добавить текущую цель в белый список
+local AddToWhitelistBtn = createMenuButton("В белый список", 325, function(btn)
+    if TargetedPlayer then
+        if not WhitelistedPlayers[TargetedPlayer.UserId] then
+            WhitelistedPlayers[TargetedPlayer.UserId] = TargetedPlayer
+            WhitelistBtn.Text = "Белый список: " .. countTable(WhitelistedPlayers) .. " игр."
+            notify("Добавлен в белый список: " .. TargetedPlayer.Name)
+        end
+    else
+        notify("Цель не выбрана")
+    end
+end)
+
+-- Добавить текущую цель в черный список
+local AddToBlacklistBtn = createMenuButton("В черный список", 370, function(btn)
+    if TargetedPlayer then
+        if not BlacklistedPlayers[TargetedPlayer.UserId] then
+            BlacklistedPlayers[TargetedPlayer.UserId] = TargetedPlayer
+            BlacklistBtn.Text = "Черный список: " .. countTable(BlacklistedPlayers) .. " игр."
+            notify("Добавлен в черный список: " .. TargetedPlayer.Name)
+        end
+    else
+        notify("Цель не выбрана")
+    end
+end)
+
+-- Очистить списки
+local ClearListsBtn = createMenuButton("Очистить списки", 415, function(btn)
+    WhitelistedPlayers = {}
+    BlacklistedPlayers = {}
+    TargetedPlayer = nil
+    TargetSpecificPlayer = false
+    WhitelistBtn.Text = "Белый список: 0 игроков"
+    BlacklistBtn.Text = "Черный список: 0 игроков"
+    SpecificTargetBtn.Text = "Цель-игрок: ВЫКЛ"
+    SpecificTargetBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    notify("Все списки очищены")
+end)
+
+local CreditsLabel = Instance.new("TextLabel")
+CreditsLabel.Size = UDim2.new(1, 0, 0, 30)
+CreditsLabel.Position = UDim2.new(0, 0, 0, 480)
+CreditsLabel.BackgroundTransparency = 1
+CreditsLabel.Text = "v3.3 - Z - вкл/выкл, ПКМ - наведение"
+CreditsLabel.TextColor3 = Color3.fromRGB(120, 120, 130)
+CreditsLabel.Font = Enum.Font.SourceSansItalic
+CreditsLabel.TextSize = 12
+CreditsLabel.Parent = MainFrame
+
+-- Добавляем CreditsLabel в скрываемые элементы
+table.insert(HideableElements, CreditsLabel)
+
+-- Вспомогательные функции
+function countTable(tbl)
+    local count = 0
+    for _ in pairs(tbl) do
+        count = count + 1
+    end
+    return count
+end
+
+function notify(message)
+    local notification = Instance.new("TextLabel")
+    notification.Size = UDim2.new(0, 250, 0, 30)
+    notification.Position = UDim2.new(0.5, -125, 0, 10)
+    notification.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    notification.Text = message
+    notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+    notification.Font = Enum.Font.SourceSansBold
+    notification.TextSize = 14
+    notification.Parent = ScreenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = notification
+    
+    task.spawn(function()
+        task.wait(2)
+        notification:Destroy()
+    end)
+end
+
+-- Функция для создания всплывающего окна с кнопкой закрытия
+function createPopupWindow(title, width, height)
+    local popupFrame = Instance.new("Frame")
+    popupFrame.Size = UDim2.new(0, width, 0, height)
+    popupFrame.Position = UDim2.new(0.5, -width/2, 0.5, -height/2)
+    popupFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    popupFrame.BorderSizePixel = 0
+    popupFrame.Active = true
+    popupFrame.Draggable = true
+    popupFrame.Parent = ScreenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = popupFrame
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(50, 50, 60)
+    stroke.Parent = popupFrame
+    
+    -- Заголовок
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -35, 0, 30)
+    titleLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.TextSize = 14
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = popupFrame
+    
+    -- Кнопка закрытия для всплывающего окна
+    local popupCloseBtn = Instance.new("TextButton")
+    popupCloseBtn.Size = UDim2.new(0, 30, 0, 30)
+    popupCloseBtn.Position = UDim2.new(1, -33, 0, 0)
+    popupCloseBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+    popupCloseBtn.Text = "✕"
+    popupCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    popupCloseBtn.Font = Enum.Font.SourceSansBold
+    popupCloseBtn.TextSize = 14
+    popupCloseBtn.Parent = popupFrame
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 5)
+    closeCorner.Parent = popupCloseBtn
+    
+    popupCloseBtn.MouseButton1Click:Connect(function()
+        popupFrame:Destroy()
+    end)
+    
+    return popupFrame
+end
+
+-- Меню выбора игрока
+function showPlayerSelection()
+    local selectionFrame = createPopupWindow("Выберите игрока", 220, 250)
+    
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, 0, 1, -30)
+    scrollFrame.Position = UDim2.new(0, 0, 0, 30)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #Players:GetPlayers() * 35)
+    scrollFrame.Parent = selectionFrame
+    
+    local yOffset = 0
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local playerBtn = Instance.new("TextButton")
+            playerBtn.Size = UDim2.new(0.9, 0, 0, 30)
+            playerBtn.Position = UDim2.new(0.05, 0, 0, yOffset)
+            playerBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+            playerBtn.Text = player.Name
+            playerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            playerBtn.Font = Enum.Font.SourceSansSemibold
+            playerBtn.TextSize = 13
+            playerBtn.Parent = scrollFrame
+            
+            playerBtn.MouseButton1Click:Connect(function()
+                TargetedPlayer = player
+                notify("Цель: " .. player.Name)
+                selectionFrame:Destroy()
+            end)
+            
+            yOffset = yOffset + 35
+        end
+    end
+end
+
+-- Меню белого списка
+function showWhitelistMenu()
+    local whitelistFrame = createPopupWindow("Белый список", 220, 250)
+    
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, 0, 1, -30)
+    scrollFrame.Position = UDim2.new(0, 0, 0, 30)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.max(countTable(WhitelistedPlayers) * 35, 35))
+    scrollFrame.Parent = whitelistFrame
+    
+    local yOffset = 0
+    if countTable(WhitelistedPlayers) == 0 then
+        local emptyLabel = Instance.new("TextLabel")
+        emptyLabel.Size = UDim2.new(1, 0, 0, 30)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Text = "Список пуст"
+        emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        emptyLabel.Font = Enum.Font.SourceSansItalic
+        emptyLabel.TextSize = 13
+        emptyLabel.Parent = scrollFrame
+    else
+        for _, player in pairs(WhitelistedPlayers) do
+            local playerLabel = Instance.new("TextLabel")
+            playerLabel.Size = UDim2.new(0.9, 0, 0, 30)
+            playerLabel.Position = UDim2.new(0.05, 0, 0, yOffset)
+            playerLabel.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
+            playerLabel.Text = player.Name
+            playerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            playerLabel.Font = Enum.Font.SourceSansSemibold
+            playerLabel.TextSize = 13
+            playerLabel.Parent = scrollFrame
+            yOffset = yOffset + 35
+        end
+    end
+end
+
+-- Меню черного списка
+function showBlacklistMenu()
+    local blacklistFrame = createPopupWindow("Черный список", 220, 250)
+    
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, 0, 1, -30)
+    scrollFrame.Position = UDim2.new(0, 0, 0, 30)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.max(countTable(BlacklistedPlayers) * 35, 35))
+    scrollFrame.Parent = blacklistFrame
+    
+    local yOffset = 0
+    if countTable(BlacklistedPlayers) == 0 then
+        local emptyLabel = Instance.new("TextLabel")
+        emptyLabel.Size = UDim2.new(1, 0, 0, 30)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Text = "Список пуст"
+        emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        emptyLabel.Font = Enum.Font.SourceSansItalic
+        emptyLabel.TextSize = 13
+        emptyLabel.Parent = scrollFrame
+    else
+        for _, player in pairs(BlacklistedPlayers) do
+            local playerLabel = Instance.new("TextLabel")
+            playerLabel.Size = UDim2.new(0.9, 0, 0, 30)
+            playerLabel.Position = UDim2.new(0.05, 0, 0, yOffset)
+            playerLabel.BackgroundColor3 = Color3.fromRGB(55, 45, 45)
+            playerLabel.Text = player.Name
+            playerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            playerLabel.Font = Enum.Font.SourceSansSemibold
+            playerLabel.TextSize = 13
+            playerLabel.Parent = scrollFrame
+            yOffset = yOffset + 35
+        end
+    end
+end
+
+-- Система ESP
+local function applyESP(player)
+    if player == LocalPlayer then return end
+    
+    local function setupHighlight(character)
+        if not character then return end
+        
+        local oldHighlight = character:FindFirstChild("DeltaESP")
+        if oldHighlight then oldHighlight:Destroy() end
+        
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "DeltaESP"
+        highlight.FillTransparency = 0.4
+        highlight.OutlineTransparency = 0.1
+        
+        -- Цвета в зависимости от списков
+        if WhitelistedPlayers[player.UserId] then
+            highlight.FillColor = Color3.fromRGB(0, 255, 0) -- Зеленый для белого списка
+            highlight.OutlineColor = Color3.fromRGB(0, 200, 0)
+        elseif BlacklistedPlayers[player.UserId] then
+            highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Красный для черного списка
+            highlight.OutlineColor = Color3.fromRGB(200, 0, 0)
+        elseif player.Team then
+            highlight.FillColor = player.Team.TeamColor.Color
+            highlight.OutlineColor = player.Team.TeamColor.Color
+        else
+            highlight.FillColor = Color3.fromRGB(0, 255, 150)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        end
+        
+        highlight.Parent = character
+    end
+
+    setupHighlight(player.Character)
+    player.CharacterAdded:Connect(function(char)
+        task.wait(0.2)
+        setupHighlight(char)
+    end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    applyESP(player)
+end
+Players.PlayerAdded:Connect(applyESP)
+
+-- Логика нахождения цели для аимбота
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = AimRadius
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+            
+            if humanoid and humanoid.Health > 0 and rootPart then
+                if not WhitelistedPlayers[player.UserId] then
+                    local currentTeamColor = player.Team and tostring(player.Team.TeamColor) or "None"
+                    if currentTeamColor ~= IgnoredTeamColor then
+                        
+                        local partName = (AimTarget == "Head") and "Head" or "UpperTorso"
+                        if not player.Character:FindFirstChild(partName) then
+                            partName = "Torso"
+                        end
+                        if not player.Character:FindFirstChild(partName) then
+                            partName = "HumanoidRootPart"
+                        end
+                        
+                        local targetPart = player.Character:FindFirstChild(partName)
+                        if targetPart then
+                            local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                            
+                            if onScreen then
+                                local mousePos = UserInputService:GetMouseLocation()
+                                local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                                
+                                if distance < shortestDistance then
+                                    closestPlayer = player
+                                    shortestDistance = distance
+                                end
+                            end
+                        end
+                        
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-- Функция аимбота
+local function aimAtPlayer(player)
+    if not player or not player.Character then return end
+    
+    local character = player.Character
+    local targetPart = nil
+    
+    if AimTarget == "Head" then
+        targetPart = character:FindFirstChild("Head")
+    else
+        targetPart = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+    end
+    
+    if not targetPart then
+        targetPart = character:FindFirstChild("HumanoidRootPart")
+    end
+    
+    if targetPart then
+        local targetPos = targetPart.Position
+        local cameraPos = Camera.CFrame.Position
+        
+        local lookAt = CFrame.new(cameraPos, targetPos)
+        
+        if AimSmoothness > 0 then
+            Camera.CFrame = Camera.CFrame:Lerp(lookAt, AimSmoothness)
+        else
+            Camera.CFrame = lookAt
+        end
+    end
+end
+
+-- Главный цикл аимбота
+RunService.RenderStepped:Connect(function()
+    if AimbotEnabled and IsAiming then
+        local target = nil
+        
+        if TargetSpecificPlayer and TargetedPlayer then
+            target = TargetedPlayer
+        else
+            target = getClosestPlayer()
+        end
+        
+        if target then
+            aimAtPlayer(target)
+        end
+    end
+end)
+
+-- Обработка ввода
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == ToggleKey and not gameProcessed then
+        AimbotEnabled = not AimbotEnabled
+        if AimbotEnabled then
+            AimToggleBtn.Text = "Аимбот: ВКЛ (Z)"
+            AimToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+            notify("Аимбот включен")
+        else
+            AimToggleBtn.Text = "Аимбот: ВЫКЛ (Z)"
+            AimToggleBtn.BackgroundColor3 = Color3.fromRGB(55, 30, 30)
+            notify("Аимбот выключен")
+        end
+    end
+    
+    if input.UserInputType == AimKey then
+        IsAiming = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == AimKey then
+        IsAiming = false
+    end
+end)
