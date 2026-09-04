@@ -1,4 +1,4 @@
--- Modern GUI, Aimbot and ESP for Delta (Русская версия с системой настройки игроков)
+-- Solaris Aim - бело-чёрный стиль (исправленный)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -7,35 +7,44 @@ local RunService = game:GetService("RunService")
 
 -- Конфигурация
 local AimbotEnabled = true
-local AimTarget = "Head" -- "Head" или "Torso"
-local AimKey = Enum.UserInputType.MouseButton2 -- Правая кнопка мыши
-local ToggleKey = Enum.KeyCode.Z -- Клавиша Z для вкл/выкл аимбота
+local AimTarget = "Head"
+local AimKey = Enum.UserInputType.MouseButton2
+local ToggleKey = Enum.KeyCode.Z
 local IgnoredTeamColor = "None"
 local IsAiming = false
-local AimSmoothness = 0.3 -- Плавность наведения (0 - мгновенно, 1 - очень плавно)
-local AimRadius = 300 -- Радиус захвата цели в пикселях
-local IsMinimized = false -- Состояние сворачивания
+local AimSmoothness = 0.3
+local AimRadius = 300
+local IsMinimized = false
 
--- Система настройки игроков
-local TargetedPlayer = nil -- Конкретный игрок для наведения
-local TargetSpecificPlayer = false -- Включить наведение на конкретного игрока
-local WhitelistedPlayers = {} -- Игроки, которых не трогаем
-local BlacklistedPlayers = {} -- Приоритетные цели
+local TargetedPlayer = nil
+local TargetSpecificPlayer = false
+local WhitelistedPlayers = {}
+local BlacklistedPlayers = {}
 
--- Создание интерфейса
+local Colors = {
+    Frame = Color3.fromRGB(255, 255, 255),
+    TitleBar = Color3.fromRGB(230, 230, 240),
+    Button = Color3.fromRGB(240, 240, 245),
+    ButtonHover = Color3.fromRGB(220, 220, 230),
+    Text = Color3.fromRGB(30, 30, 40),
+    Input = Color3.fromRGB(235, 235, 240),
+    ScrollBg = Color3.fromRGB(245, 245, 248),
+    RedButton = Color3.fromRGB(255, 150, 150),
+    GreenButton = Color3.fromRGB(150, 255, 150),
+    BlueButton = Color3.fromRGB(150, 180, 255)
+}
+
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DeltaPremiumHub"
+ScreenGui.Name = "SolarisAim"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Главное окно
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 280, 0, 560)
+MainFrame.Size = UDim2.new(0, 280, 0, 520)
 MainFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BackgroundColor3 = Colors.Frame
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
@@ -44,72 +53,78 @@ UICorner.Parent = MainFrame
 
 local UIStroke = Instance.new("UIStroke")
 UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(50, 50, 60)
+UIStroke.Color = Color3.fromRGB(200, 200, 210)
 UIStroke.Parent = MainFrame
 
--- Заголовок
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -80, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-Title.Text = "  DELTA HUB v3.3"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 18
+Title.BackgroundColor3 = Colors.TitleBar
+Title.Text = "  SOLARIS AIM v1.0"
+Title.TextColor3 = Colors.Text
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
 
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 10)
-TitleCorner.Parent = Title
+-- Перетаскивание за заголовок
+local dragging = false
+local dragStart = nil
+local frameStart = nil
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        frameStart = MainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(frameStart.X.Scale, frameStart.X.Offset + delta.X, frameStart.Y.Scale, frameStart.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
 
--- Кнопка сворачивания
 local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Size = UDim2.new(0, 35, 0, 35)
-MinimizeButton.Position = UDim2.new(1, -76, 0, 3)
-MinimizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+MinimizeButton.Position = UDim2.new(1, -68, 0, 5)
+MinimizeButton.BackgroundColor3 = Colors.Button
 MinimizeButton.Text = "—"
-MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeButton.Font = Enum.Font.SourceSansBold
-MinimizeButton.TextSize = 18
+MinimizeButton.TextColor3 = Colors.Text
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.TextSize = 16
 MinimizeButton.Parent = MainFrame
 
-local MinimizeCorner = Instance.new("UICorner")
-MinimizeCorner.CornerRadius = UDim.new(0, 6)
-MinimizeCorner.Parent = MinimizeButton
-
--- Кнопка закрытия
 local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.new(0, 35, 0, 35)
-CloseButton.Position = UDim2.new(1, -38, 0, 3)
-CloseButton.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Colors.RedButton
 CloseButton.Text = "✕"
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.Font = Enum.Font.SourceSansBold
-CloseButton.TextSize = 18
+CloseButton.TextColor3 = Colors.Text
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 16
 CloseButton.Parent = MainFrame
 
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
-CloseCorner.Parent = CloseButton
-
--- Список всех элементов для скрытия
 local HideableElements = {}
 
 CloseButton.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Функция сворачивания
 MinimizeButton.MouseButton1Click:Connect(function()
     IsMinimized = not IsMinimized
     if IsMinimized then
-        MainFrame.Size = UDim2.new(0, 280, 0, 40) -- Оставляем только заголовок
+        MainFrame.Size = UDim2.new(0, 280, 0, 40)
         MinimizeButton.Text = "+"
         for _, element in pairs(HideableElements) do
             element.Visible = false
         end
     else
-        MainFrame.Size = UDim2.new(0, 280, 0, 560) -- Возвращаем полный размер
+        MainFrame.Size = UDim2.new(0, 280, 0, 520)
         MinimizeButton.Text = "—"
         for _, element in pairs(HideableElements) do
             element.Visible = true
@@ -117,29 +132,22 @@ MinimizeButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Функция создания кнопок меню
 local function createMenuButton(text, yPosition, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.9, 0, 0, 35)
     btn.Position = UDim2.new(0.05, 0, 0, yPosition)
-    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    btn.BackgroundColor3 = Colors.Button
     btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(230, 230, 230)
-    btn.Font = Enum.Font.SourceSansSemibold
-    btn.TextSize = 14
+    btn.TextColor3 = Colors.Text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
     btn.Parent = MainFrame
     
-    -- Добавляем в список скрываемых элементов
     table.insert(HideableElements, btn)
 
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 6)
     btnCorner.Parent = btn
-
-    local btnStroke = Instance.new("UIStroke")
-    btnStroke.Thickness = 1
-    btnStroke.Color = Color3.fromRGB(60, 60, 75)
-    btnStroke.Parent = btn
 
     btn.MouseButton1Click:Connect(function()
         callback(btn)
@@ -148,125 +156,118 @@ local function createMenuButton(text, yPosition, callback)
     return btn
 end
 
--- Создание элементов интерфейса
-local AimToggleBtn = createMenuButton("Аимбот: ВКЛ (Z)", 55, function(btn)
+local AimToggleBtn = createMenuButton("🎯 Аимбот: ВКЛ (Z)", 55, function(btn)
     AimbotEnabled = not AimbotEnabled
     if AimbotEnabled then
-        btn.Text = "Аимбот: ВКЛ (Z)"
-        btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+        btn.Text = "🎯 Аимбот: ВКЛ (Z)"
+        btn.BackgroundColor3 = Colors.Button
     else
-        btn.Text = "Аимбот: ВЫКЛ (Z)"
-        btn.BackgroundColor3 = Color3.fromRGB(55, 30, 30)
+        btn.Text = "🎯 Аимбот: ВЫКЛ (Z)"
+        btn.BackgroundColor3 = Colors.RedButton
     end
 end)
 
-local TargetBtn = createMenuButton("Цель: ГОЛОВА", 100, function(btn)
+local TargetBtn = createMenuButton("🎯 Цель: ГОЛОВА", 100, function(btn)
     if AimTarget == "Head" then
         AimTarget = "Torso"
-        btn.Text = "Цель: ТЕЛО"
+        btn.Text = "🎯 Цель: ТЕЛО"
     else
         AimTarget = "Head"
-        btn.Text = "Цель: ГОЛОВА"
+        btn.Text = "🎯 Цель: ГОЛОВА"
     end
 end)
 
-local TeamIgnoreBtn = createMenuButton("Игнор команды: НЕТ", 145, function(btn)
+local TeamIgnoreBtn = createMenuButton("👥 Игнор команды: НЕТ", 145, function(btn)
     if IgnoredTeamColor == "None" then
         if LocalPlayer.Team then
             IgnoredTeamColor = tostring(LocalPlayer.Team.TeamColor)
-            btn.Text = "Игнор: МОЯ КОМАНДА"
-            btn.BackgroundColor3 = Color3.fromRGB(40, 50, 40)
+            btn.Text = "👥 Игнор: МОЯ КОМАНДА"
+            btn.BackgroundColor3 = Colors.GreenButton
         else
             IgnoredTeamColor = "Bright blue"
-            btn.Text = "Игнор: Синяя команда"
+            btn.Text = "👥 Игнор: Синяя команда"
+            btn.BackgroundColor3 = Colors.BlueButton
         end
     elseif IgnoredTeamColor == "Bright blue" then
         IgnoredTeamColor = "Bright red"
-        btn.Text = "Игнор: Красная команда"
+        btn.Text = "👥 Игнор: Красная команда"
+        btn.BackgroundColor3 = Colors.RedButton
     else
         IgnoredTeamColor = "None"
-        btn.Text = "Игнор команды: НЕТ"
-        btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+        btn.Text = "👥 Игнор команды: НЕТ"
+        btn.BackgroundColor3 = Colors.Button
     end
 end)
 
--- Кнопка наведения на конкретного игрока
-local SpecificTargetBtn = createMenuButton("Цель-игрок: ВЫКЛ", 190, function(btn)
+local SpecificTargetBtn = createMenuButton("👤 Цель-игрок: ВЫКЛ", 190, function(btn)
     TargetSpecificPlayer = not TargetSpecificPlayer
     if TargetSpecificPlayer then
-        btn.Text = "Цель-игрок: ВКЛ"
-        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        btn.Text = "👤 Цель-игрок: ВКЛ"
+        btn.BackgroundColor3 = Colors.BlueButton
         showPlayerSelection()
     else
-        btn.Text = "Цель-игрок: ВЫКЛ"
-        btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+        btn.Text = "👤 Цель-игрок: ВЫКЛ"
+        btn.BackgroundColor3 = Colors.Button
         TargetedPlayer = nil
     end
 end)
 
--- Кнопка белого списка
-local WhitelistBtn = createMenuButton("Белый список: 0 игроков", 235, function(btn)
+local WhitelistBtn = createMenuButton("✅ Белый список: 0 игроков", 235, function(btn)
     showWhitelistMenu()
 end)
 
--- Кнопка черного списка
-local BlacklistBtn = createMenuButton("Черный список: 0 игроков", 280, function(btn)
+local BlacklistBtn = createMenuButton("❌ Черный список: 0 игроков", 280, function(btn)
     showBlacklistMenu()
 end)
 
--- Добавить текущую цель в белый список
-local AddToWhitelistBtn = createMenuButton("В белый список", 325, function(btn)
+local AddToWhitelistBtn = createMenuButton("➕ В белый список", 325, function(btn)
     if TargetedPlayer then
         if not WhitelistedPlayers[TargetedPlayer.UserId] then
             WhitelistedPlayers[TargetedPlayer.UserId] = TargetedPlayer
-            WhitelistBtn.Text = "Белый список: " .. countTable(WhitelistedPlayers) .. " игр."
-            notify("Добавлен в белый список: " .. TargetedPlayer.Name)
+            WhitelistBtn.Text = "✅ Белый список: " .. countTable(WhitelistedPlayers) .. " игр."
+            notify("Добавлен: " .. TargetedPlayer.Name)
         end
     else
         notify("Цель не выбрана")
     end
 end)
 
--- Добавить текущую цель в черный список
-local AddToBlacklistBtn = createMenuButton("В черный список", 370, function(btn)
+local AddToBlacklistBtn = createMenuButton("➖ В черный список", 370, function(btn)
     if TargetedPlayer then
         if not BlacklistedPlayers[TargetedPlayer.UserId] then
             BlacklistedPlayers[TargetedPlayer.UserId] = TargetedPlayer
-            BlacklistBtn.Text = "Черный список: " .. countTable(BlacklistedPlayers) .. " игр."
-            notify("Добавлен в черный список: " .. TargetedPlayer.Name)
+            BlacklistBtn.Text = "❌ Черный список: " .. countTable(BlacklistedPlayers) .. " игр."
+            notify("Добавлен: " .. TargetedPlayer.Name)
         end
     else
         notify("Цель не выбрана")
     end
 end)
 
--- Очистить списки
-local ClearListsBtn = createMenuButton("Очистить списки", 415, function(btn)
+local ClearListsBtn = createMenuButton("🔄 Очистить списки", 415, function(btn)
     WhitelistedPlayers = {}
     BlacklistedPlayers = {}
     TargetedPlayer = nil
     TargetSpecificPlayer = false
-    WhitelistBtn.Text = "Белый список: 0 игроков"
-    BlacklistBtn.Text = "Черный список: 0 игроков"
-    SpecificTargetBtn.Text = "Цель-игрок: ВЫКЛ"
-    SpecificTargetBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    notify("Все списки очищены")
+    WhitelistBtn.Text = "✅ Белый список: 0 игроков"
+    BlacklistBtn.Text = "❌ Черный список: 0 игроков"
+    SpecificTargetBtn.Text = "👤 Цель-игрок: ВЫКЛ"
+    SpecificTargetBtn.BackgroundColor3 = Colors.Button
+    notify("Списки очищены")
 end)
 
 local CreditsLabel = Instance.new("TextLabel")
 CreditsLabel.Size = UDim2.new(1, 0, 0, 30)
-CreditsLabel.Position = UDim2.new(0, 0, 0, 480)
+CreditsLabel.Position = UDim2.new(0, 0, 0, 465)
 CreditsLabel.BackgroundTransparency = 1
-CreditsLabel.Text = "v3.3 - Z - вкл/выкл, ПКМ - наведение"
-CreditsLabel.TextColor3 = Color3.fromRGB(120, 120, 130)
-CreditsLabel.Font = Enum.Font.SourceSansItalic
-CreditsLabel.TextSize = 12
+CreditsLabel.Text = "v1.0 - Z - вкл/выкл, ПКМ - наведение"
+CreditsLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
+CreditsLabel.Font = Enum.Font.Gotham
+CreditsLabel.TextSize = 10
 CreditsLabel.Parent = MainFrame
 
--- Добавляем CreditsLabel в скрываемые элементы
 table.insert(HideableElements, CreditsLabel)
 
--- Вспомогательные функции
 function countTable(tbl)
     local count = 0
     for _ in pairs(tbl) do
@@ -279,11 +280,11 @@ function notify(message)
     local notification = Instance.new("TextLabel")
     notification.Size = UDim2.new(0, 250, 0, 30)
     notification.Position = UDim2.new(0.5, -125, 0, 10)
-    notification.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    notification.BackgroundColor3 = Colors.Frame
     notification.Text = message
-    notification.TextColor3 = Color3.fromRGB(255, 255, 255)
-    notification.Font = Enum.Font.SourceSansBold
-    notification.TextSize = 14
+    notification.TextColor3 = Colors.Text
+    notification.Font = Enum.Font.GothamBold
+    notification.TextSize = 12
     notification.Parent = ScreenGui
     
     local corner = Instance.new("UICorner")
@@ -296,15 +297,13 @@ function notify(message)
     end)
 end
 
--- Функция для создания всплывающего окна с кнопкой закрытия
 function createPopupWindow(title, width, height)
     local popupFrame = Instance.new("Frame")
     popupFrame.Size = UDim2.new(0, width, 0, height)
     popupFrame.Position = UDim2.new(0.5, -width/2, 0.5, -height/2)
-    popupFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    popupFrame.BackgroundColor3 = Colors.Frame
     popupFrame.BorderSizePixel = 0
     popupFrame.Active = true
-    popupFrame.Draggable = true
     popupFrame.Parent = ScreenGui
     
     local corner = Instance.new("UICorner")
@@ -313,34 +312,51 @@ function createPopupWindow(title, width, height)
     
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 2
-    stroke.Color = Color3.fromRGB(50, 50, 60)
+    stroke.Color = Color3.fromRGB(200, 200, 210)
     stroke.Parent = popupFrame
     
-    -- Заголовок
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Size = UDim2.new(1, -35, 0, 30)
-    titleLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    titleLabel.BackgroundColor3 = Colors.TitleBar
     titleLabel.Text = title
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.Font = Enum.Font.SourceSansBold
-    titleLabel.TextSize = 14
+    titleLabel.TextColor3 = Colors.Text
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 12
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = popupFrame
     
-    -- Кнопка закрытия для всплывающего окна
+    -- Перетаскивание попапа
+    local popupDragging = false
+    local popupDragStart = nil
+    local popupFrameStart = nil
+    titleLabel.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            popupDragging = true
+            popupDragStart = input.Position
+            popupFrameStart = popupFrame.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if popupDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - popupDragStart
+            popupFrame.Position = UDim2.new(popupFrameStart.X.Scale, popupFrameStart.X.Offset + delta.X, popupFrameStart.Y.Scale, popupFrameStart.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            popupDragging = false
+        end
+    end)
+    
     local popupCloseBtn = Instance.new("TextButton")
     popupCloseBtn.Size = UDim2.new(0, 30, 0, 30)
     popupCloseBtn.Position = UDim2.new(1, -33, 0, 0)
-    popupCloseBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+    popupCloseBtn.BackgroundColor3 = Colors.RedButton
     popupCloseBtn.Text = "✕"
-    popupCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    popupCloseBtn.Font = Enum.Font.SourceSansBold
+    popupCloseBtn.TextColor3 = Colors.Text
+    popupCloseBtn.Font = Enum.Font.GothamBold
     popupCloseBtn.TextSize = 14
     popupCloseBtn.Parent = popupFrame
-    
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 5)
-    closeCorner.Parent = popupCloseBtn
     
     popupCloseBtn.MouseButton1Click:Connect(function()
         popupFrame:Destroy()
@@ -349,7 +365,6 @@ function createPopupWindow(title, width, height)
     return popupFrame
 end
 
--- Меню выбора игрока
 function showPlayerSelection()
     local selectionFrame = createPopupWindow("Выберите игрока", 220, 250)
     
@@ -358,6 +373,7 @@ function showPlayerSelection()
     scrollFrame.Position = UDim2.new(0, 0, 0, 30)
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #Players:GetPlayers() * 35)
+    scrollFrame.ScrollBarThickness = 4
     scrollFrame.Parent = selectionFrame
     
     local yOffset = 0
@@ -366,11 +382,11 @@ function showPlayerSelection()
             local playerBtn = Instance.new("TextButton")
             playerBtn.Size = UDim2.new(0.9, 0, 0, 30)
             playerBtn.Position = UDim2.new(0.05, 0, 0, yOffset)
-            playerBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+            playerBtn.BackgroundColor3 = Colors.Button
             playerBtn.Text = player.Name
-            playerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            playerBtn.Font = Enum.Font.SourceSansSemibold
-            playerBtn.TextSize = 13
+            playerBtn.TextColor3 = Colors.Text
+            playerBtn.Font = Enum.Font.Gotham
+            playerBtn.TextSize = 11
             playerBtn.Parent = scrollFrame
             
             playerBtn.MouseButton1Click:Connect(function()
@@ -384,7 +400,6 @@ function showPlayerSelection()
     end
 end
 
--- Меню белого списка
 function showWhitelistMenu()
     local whitelistFrame = createPopupWindow("Белый список", 220, 250)
     
@@ -393,6 +408,7 @@ function showWhitelistMenu()
     scrollFrame.Position = UDim2.new(0, 0, 0, 30)
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.max(countTable(WhitelistedPlayers) * 35, 35))
+    scrollFrame.ScrollBarThickness = 4
     scrollFrame.Parent = whitelistFrame
     
     local yOffset = 0
@@ -402,26 +418,25 @@ function showWhitelistMenu()
         emptyLabel.BackgroundTransparency = 1
         emptyLabel.Text = "Список пуст"
         emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-        emptyLabel.Font = Enum.Font.SourceSansItalic
-        emptyLabel.TextSize = 13
+        emptyLabel.Font = Enum.Font.Gotham
+        emptyLabel.TextSize = 11
         emptyLabel.Parent = scrollFrame
     else
         for _, player in pairs(WhitelistedPlayers) do
             local playerLabel = Instance.new("TextLabel")
             playerLabel.Size = UDim2.new(0.9, 0, 0, 30)
             playerLabel.Position = UDim2.new(0.05, 0, 0, yOffset)
-            playerLabel.BackgroundColor3 = Color3.fromRGB(45, 55, 45)
+            playerLabel.BackgroundColor3 = Colors.GreenButton
             playerLabel.Text = player.Name
-            playerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            playerLabel.Font = Enum.Font.SourceSansSemibold
-            playerLabel.TextSize = 13
+            playerLabel.TextColor3 = Colors.Text
+            playerLabel.Font = Enum.Font.Gotham
+            playerLabel.TextSize = 11
             playerLabel.Parent = scrollFrame
             yOffset = yOffset + 35
         end
     end
 end
 
--- Меню черного списка
 function showBlacklistMenu()
     local blacklistFrame = createPopupWindow("Черный список", 220, 250)
     
@@ -430,6 +445,7 @@ function showBlacklistMenu()
     scrollFrame.Position = UDim2.new(0, 0, 0, 30)
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.max(countTable(BlacklistedPlayers) * 35, 35))
+    scrollFrame.ScrollBarThickness = 4
     scrollFrame.Parent = blacklistFrame
     
     local yOffset = 0
@@ -439,53 +455,52 @@ function showBlacklistMenu()
         emptyLabel.BackgroundTransparency = 1
         emptyLabel.Text = "Список пуст"
         emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-        emptyLabel.Font = Enum.Font.SourceSansItalic
-        emptyLabel.TextSize = 13
+        emptyLabel.Font = Enum.Font.Gotham
+        emptyLabel.TextSize = 11
         emptyLabel.Parent = scrollFrame
     else
         for _, player in pairs(BlacklistedPlayers) do
             local playerLabel = Instance.new("TextLabel")
             playerLabel.Size = UDim2.new(0.9, 0, 0, 30)
             playerLabel.Position = UDim2.new(0.05, 0, 0, yOffset)
-            playerLabel.BackgroundColor3 = Color3.fromRGB(55, 45, 45)
+            playerLabel.BackgroundColor3 = Colors.RedButton
             playerLabel.Text = player.Name
-            playerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            playerLabel.Font = Enum.Font.SourceSansSemibold
-            playerLabel.TextSize = 13
+            playerLabel.TextColor3 = Colors.Text
+            playerLabel.Font = Enum.Font.Gotham
+            playerLabel.TextSize = 11
             playerLabel.Parent = scrollFrame
             yOffset = yOffset + 35
         end
     end
 end
 
--- Система ESP
+-- ESP
 local function applyESP(player)
     if player == LocalPlayer then return end
     
     local function setupHighlight(character)
         if not character then return end
         
-        local oldHighlight = character:FindFirstChild("DeltaESP")
+        local oldHighlight = character:FindFirstChild("SolarisESP")
         if oldHighlight then oldHighlight:Destroy() end
         
         local highlight = Instance.new("Highlight")
-        highlight.Name = "DeltaESP"
+        highlight.Name = "SolarisESP"
         highlight.FillTransparency = 0.4
         highlight.OutlineTransparency = 0.1
         
-        -- Цвета в зависимости от списков
         if WhitelistedPlayers[player.UserId] then
-            highlight.FillColor = Color3.fromRGB(0, 255, 0) -- Зеленый для белого списка
+            highlight.FillColor = Color3.fromRGB(0, 255, 0)
             highlight.OutlineColor = Color3.fromRGB(0, 200, 0)
         elseif BlacklistedPlayers[player.UserId] then
-            highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Красный для черного списка
+            highlight.FillColor = Color3.fromRGB(255, 0, 0)
             highlight.OutlineColor = Color3.fromRGB(200, 0, 0)
         elseif player.Team then
             highlight.FillColor = player.Team.TeamColor.Color
             highlight.OutlineColor = player.Team.TeamColor.Color
         else
             highlight.FillColor = Color3.fromRGB(0, 255, 150)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.OutlineColor = Color3.fromRGB(100, 100, 100)
         end
         
         highlight.Parent = character
@@ -503,7 +518,7 @@ for _, player in ipairs(Players:GetPlayers()) do
 end
 Players.PlayerAdded:Connect(applyESP)
 
--- Логика нахождения цели для аимбота
+-- Аимбот
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = AimRadius
@@ -540,7 +555,6 @@ local function getClosestPlayer()
                                 end
                             end
                         end
-                        
                     end
                 end
             end
@@ -549,7 +563,6 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- Функция аимбота
 local function aimAtPlayer(player)
     if not player or not player.Character then return end
     
@@ -569,7 +582,6 @@ local function aimAtPlayer(player)
     if targetPart then
         local targetPos = targetPart.Position
         local cameraPos = Camera.CFrame.Position
-        
         local lookAt = CFrame.new(cameraPos, targetPos)
         
         if AimSmoothness > 0 then
@@ -580,7 +592,6 @@ local function aimAtPlayer(player)
     end
 end
 
--- Главный цикл аимбота
 RunService.RenderStepped:Connect(function()
     if AimbotEnabled and IsAiming then
         local target = nil
@@ -597,17 +608,16 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Обработка ввода
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == ToggleKey and not gameProcessed then
         AimbotEnabled = not AimbotEnabled
         if AimbotEnabled then
-            AimToggleBtn.Text = "Аимбот: ВКЛ (Z)"
-            AimToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+            AimToggleBtn.Text = "🎯 Аимбот: ВКЛ (Z)"
+            AimToggleBtn.BackgroundColor3 = Colors.Button
             notify("Аимбот включен")
         else
-            AimToggleBtn.Text = "Аимбот: ВЫКЛ (Z)"
-            AimToggleBtn.BackgroundColor3 = Color3.fromRGB(55, 30, 30)
+            AimToggleBtn.Text = "🎯 Аимбот: ВЫКЛ (Z)"
+            AimToggleBtn.BackgroundColor3 = Colors.RedButton
             notify("Аимбот выключен")
         end
     end
@@ -622,3 +632,5 @@ UserInputService.InputEnded:Connect(function(input)
         IsAiming = false
     end
 end)
+
+print("Solaris Aim загружен!")
