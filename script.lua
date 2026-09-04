@@ -5,7 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
-local KEY = "SIGMA-PASHA"
+local KEY = "S"
 local isActivated = false
 local isEnabled = true
 
