@@ -5,7 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
-local KEY = "S"
+local KEY = "syka"
 local isActivated = false
 local isEnabled = true
 
