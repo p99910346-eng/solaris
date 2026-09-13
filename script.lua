@@ -580,7 +580,7 @@ function loadGUI()
     end)
 
     CreateButton("🎮", "ИГРЫ", function()
-        local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 300, 200)
+        local frame = CreateWindow("GamesWindow", "🎮 ИГРЫ", 300, 250)
         
         local shipBtn = Instance.new("TextButton")
         shipBtn.Size = UDim2.new(0.9, 0, 0, 40)
@@ -601,6 +601,16 @@ function loadGUI()
         survivalBtn.Font = Enum.Font.GothamBold
         survivalBtn.TextSize = 10
         survivalBtn.Parent = frame
+        
+        local minesweeperBtn = Instance.new("TextButton")
+        minesweeperBtn.Size = UDim2.new(0.9, 0, 0, 40)
+        minesweeperBtn.Position = UDim2.new(0.05, 0, 0, 145)
+        minesweeperBtn.BackgroundColor3 = Color3.fromRGB(255, 210, 0)
+        minesweeperBtn.Text = "💣 САПЁР"
+        minesweeperBtn.TextColor3 = Colors.Text
+        minesweeperBtn.Font = Enum.Font.GothamBold
+        minesweeperBtn.TextSize = 10
+        minesweeperBtn.Parent = frame
         
         local shipLoading = false
         shipBtn.MouseButton1Click:Connect(function()
@@ -629,6 +639,21 @@ function loadGUI()
                 if not success then print("Ошибка: " .. tostring(err)) end
                 survivalBtn.Text = "🏚️ ВЫЖИВАНИЕ НА ЗАДНИХ УЛИЦАХ"
                 survivalLoading = false
+            end)
+        end)
+        
+        local minesweeperLoading = false
+        minesweeperBtn.MouseButton1Click:Connect(function()
+            if minesweeperLoading then return end
+            minesweeperLoading = true
+            minesweeperBtn.Text = "⏳ ЗАГРУЗКА..."
+            task.spawn(function()
+                local success, err = pcall(function()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/p99910346-eng/solaris/refs/heads/main/sp"))()
+                end)
+                if not success then print("Ошибка: " .. tostring(err)) end
+                minesweeperBtn.Text = "💣 САПЁР"
+                minesweeperLoading = false
             end)
         end)
     end)
@@ -795,6 +820,6 @@ function loadGUI()
     end)
 
     print("Solaris GUI v" .. Version .. " загружен!")
-    print("Ключ: SIGMA-PASHA")
+    print("Ключ: S")
     print("ALT - вкл/выкл | B - аим")
 end
