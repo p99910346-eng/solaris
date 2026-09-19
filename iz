@@ -1,0 +1,511 @@
+-- GUI: подсветка Drop + стрелка + кнопка "−" + уведомление о появлении
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local camera = workspace.CurrentCamera
+
+-- Удаляем старое GUI
+local oldGui = playerGui:FindFirstChild("DropHighlightGui")
+if oldGui then oldGui:Destroy() end
+local oldArrow = playerGui:FindFirstChild("DropArrowGui")
+if oldArrow then oldArrow:Destroy() end
+local oldNotify = playerGui:FindFirstChild("DropNotifyGui")
+if oldNotify then oldNotify:Destroy() end
+
+-- ═══════════════════════════════════════════
+-- НАСТРОЙКИ
+-- ═══════════════════════════════════════════
+local HIGHLIGHT_COLOR = Color3.fromRGB(255, 60, 60)
+local FILL_TRANSPARENCY = 0.7
+local OUTLINE_TRANSPARENCY = 0
+local ARROW_COLOR = Color3.fromRGB(255, 60, 60)
+local ARROW_SIZE = 60
+local ARROW_OFFSET = 120
+
+-- ═══════════════════════════════════════════
+-- ПЕРЕМЕННЫЕ
+-- ═══════════════════════════════════════════
+local highlight = nil
+local targetDrop = nil
+local highlightOn = false
+local arrowOn = false
+local arrowGui = nil
+local wasDropPresent = false
+local lastNotify = 0
+
+-- ═══════════════════════════════════════════
+-- ПОИСК МОДЕЛИ DROP
+-- ═══════════════════════════════════════════
+local function findDrop()
+    return workspace:FindFirstChild("Drop")
+end
+
+local function getDropPosition()
+    local drop = findDrop()
+    if not drop then return nil end
+    
+    if drop:IsA("Model") then
+        local primary = drop.PrimaryPart or drop:FindFirstChildWhichIsA("BasePart", true)
+        if primary then return primary.Position end
+    elseif drop:IsA("BasePart") then
+        return drop.Position
+    end
+    return nil
+end
+
+-- ═══════════════════════════════════════════
+-- ПОДСВЕТКА
+-- ═══════════════════════════════════════════
+local function enableHighlight()
+    targetDrop = findDrop()
+    if not targetDrop then return false end
+    
+    if highlight then highlight:Destroy() end
+    
+    highlight = Instance.new("Highlight")
+    highlight.Name = "DropHighlight"
+    highlight.Adornee = targetDrop
+    highlight.FillColor = HIGHLIGHT_COLOR
+    highlight.FillTransparency = FILL_TRANSPARENCY
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.OutlineTransparency = OUTLINE_TRANSPARENCY
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = targetDrop
+    return true
+end
+
+local function disableHighlight()
+    if highlight then
+        highlight:Destroy()
+        highlight = nil
+    end
+end
+
+local function toggleHighlight()
+    highlightOn = not highlightOn
+    if highlightOn then
+        return enableHighlight()
+    else
+        disableHighlight()
+        return false
+    end
+end
+
+-- ═══════════════════════════════════════════
+-- СТРЕЛКА
+-- ═══════════════════════════════════════════
+local function createArrowGui()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "DropArrowGui"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    gui.Parent = playerGui
+    gui.Enabled = false
+    
+    local frame = Instance.new("Frame")
+    frame.Name = "ArrowFrame"
+    frame.Size = UDim2.new(0, ARROW_SIZE, 0, ARROW_SIZE)
+    frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    frame.BackgroundTransparency = 1
+    frame.Parent = gui
+    
+    local arrow = Instance.new("TextLabel")
+    arrow.Name = "Arrow"
+    arrow.Size = UDim2.new(1, 0, 1, 0)
+    arrow.BackgroundTransparency = 1
+    arrow.Text = "▲"
+    arrow.TextColor3 = ARROW_COLOR
+    arrow.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
+    arrow.TextStrokeTransparency = 0
+    arrow.Font = Enum.Font.GothamBold
+    arrow.TextSize = ARROW_SIZE
+    arrow.Parent = frame
+    
+    local pulseTween = TweenService:Create(arrow, 
+        TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {TextTransparency = 0.4}
+    )
+    pulseTween:Play()
+    
+    return gui, frame
+end
+
+local function updateArrow()
+    if not arrowOn or not arrowGui then return end
+    
+    local dropPos = getDropPosition()
+    if not dropPos then
+        arrowGui.Enabled = false
+        return
+    end
+    arrowGui.Enabled = true
+    
+    local camPos = camera.CFrame.Position
+    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    
+    local screenPoint, onScreen = camera:WorldToViewportPoint(dropPos)
+    local isBehind = screenPoint.Z < 0
+    
+    local targetX, targetY
+    
+    if onScreen and not isBehind then
+        targetX = screenPoint.X
+        targetY = screenPoint.Y
+    else
+        local direction = (dropPos - camPos).Unit
+        local camRight = camera.CFrame.RightVector
+        local camUp = camera.CFrame.UpVector
+        
+        local right = direction:Dot(camRight)
+        local up = direction:Dot(camUp)
+        
+        if isBehind then
+            right = -right
+            up = -up
+        end
+        
+        local angle = math.atan2(up, right)
+        local radius = math.min(camera.ViewportSize.X, camera.ViewportSize.Y) / 2 - ARROW_OFFSET + 60
+        
+        targetX = screenCenter.X + math.cos(angle) * radius
+        targetY = screenCenter.Y - math.sin(angle) * radius
+    end
+    
+    local arrowFrame = arrowGui:FindFirstChild("ArrowFrame")
+    if arrowFrame then
+        arrowFrame.Position = UDim2.new(0, targetX, 0, targetY)
+        local dx = targetX - screenCenter.X
+        local dy = targetY - screenCenter.Y
+        local rotation = math.deg(math.atan2(dy, dx)) + 90
+        arrowFrame.Rotation = rotation
+    end
+end
+
+-- ═══════════════════════════════════════════
+-- УВЕДОМЛЕНИЕ О ПОЯВЛЕНИИ ЯЩИКА
+-- ═══════════════════════════════════════════
+local notifyGui = Instance.new("ScreenGui")
+notifyGui.Name = "DropNotifyGui"
+notifyGui.ResetOnSpawn = false
+notifyGui.IgnoreGuiInset = true
+notifyGui.Parent = playerGui
+
+local notifyFrame = Instance.new("Frame")
+notifyFrame.Size = UDim2.new(0, 400, 0, 60)
+notifyFrame.Position = UDim2.new(0.5, -200, 0, 100)
+notifyFrame.BackgroundColor3 = Color3.fromRGB(40, 140, 60)
+notifyFrame.BackgroundTransparency = 1
+notifyFrame.BorderSizePixel = 0
+notifyFrame.Visible = false
+notifyFrame.Parent = notifyGui
+
+local notifyCorner = Instance.new("UICorner")
+notifyCorner.CornerRadius = UDim.new(0, 10)
+notifyCorner.Parent = notifyFrame
+
+local notifyLabel = Instance.new("TextLabel")
+notifyLabel.Size = UDim2.new(1, 0, 1, 0)
+notifyLabel.BackgroundTransparency = 1
+notifyLabel.Text = "📦 ЕСТЬ ЯЩИК"
+notifyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+notifyLabel.Font = Enum.Font.GothamBold
+notifyLabel.TextSize = 20
+notifyLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+notifyLabel.TextStrokeTransparency = 0.5
+notifyLabel.TextTransparency = 1
+notifyLabel.Parent = notifyFrame
+
+local function showNotification()
+    notifyFrame.Visible = true
+    notifyFrame.BackgroundTransparency = 1
+    notifyLabel.TextTransparency = 1
+    
+    TweenService:Create(notifyFrame, TweenInfo.new(0.3), {BackgroundTransparency = 0.1}):Play()
+    TweenService:Create(notifyLabel, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+    
+    task.wait(4)
+    
+    TweenService:Create(notifyFrame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(notifyLabel, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    
+    task.wait(0.3)
+    notifyFrame.Visible = false
+end
+
+-- ═══════════════════════════════════════════
+-- GUI МЕНЮ (с кнопкой "−")
+-- ═══════════════════════════════════════════
+local FULL_HEIGHT = 300
+local MIN_HEIGHT = 40
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DropHighlightGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 280, 0, FULL_HEIGHT)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = mainFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -100, 0, 40)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "ПОДСВЕТКА DROP"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 15
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.Parent = mainFrame
+
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 30, 0, 30)
+minBtn.Position = UDim2.new(1, -70, 0, 5)
+minBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 90)
+minBtn.Text = "−"
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 18
+minBtn.Parent = mainFrame
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.Parent = minBtn
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 14
+closeBtn.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.Parent = closeBtn
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui.Enabled = false
+end)
+
+local isMinimized = false
+minBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 280, 0, MIN_HEIGHT)
+        }):Play()
+        minBtn.Text = "+"
+    else
+        TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 280, 0, FULL_HEIGHT)
+        }):Play()
+        minBtn.Text = "−"
+    end
+end)
+
+-- Статус (без "частей")
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -20, 0, 32)
+statusLabel.Position = UDim2.new(0, 10, 0, 45)
+statusLabel.BackgroundTransparency = 0.3
+statusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+statusLabel.Text = "❓ ПРОВЕРКА..."
+statusLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextSize = 13
+statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+statusLabel.Parent = mainFrame
+
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 6)
+statusCorner.Parent = statusLabel
+
+local function updateStatus()
+    local drop = findDrop()
+    if drop then
+        statusLabel.Text = "✅ ЯЩИК ЕСТЬ"
+        statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.BackgroundColor3 = Color3.fromRGB(30, 60, 35)
+    else
+        statusLabel.Text = "❌ ЯЩИКА НЕТ"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        statusLabel.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+    end
+end
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 260, 0, 40)
+toggleBtn.Position = UDim2.new(0, 10, 0, 85)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 50, 50)
+toggleBtn.BackgroundTransparency = 0.15
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Text = "ВКЛЮЧИТЬ ПОДСВЕТКУ"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 13
+toggleBtn.TextStrokeTransparency = 0.4
+toggleBtn.Parent = mainFrame
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 8)
+toggleCorner.Parent = toggleBtn
+
+toggleBtn.MouseEnter:Connect(function()
+    TweenService:Create(toggleBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
+end)
+toggleBtn.MouseLeave:Connect(function()
+    if not highlightOn then
+        TweenService:Create(toggleBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.15}):Play()
+    end
+end)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    local ok = toggleHighlight()
+    if highlightOn and ok then
+        toggleBtn.Text = "ВЫКЛЮЧИТЬ ПОДСВЕТКУ  ✓"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 140, 70)
+    else
+        highlightOn = false
+        toggleBtn.Text = "ВКЛЮЧИТЬ ПОДСВЕТКУ"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 50, 50)
+    end
+    updateStatus()
+end)
+
+local arrowBtn = Instance.new("TextButton")
+arrowBtn.Size = UDim2.new(0, 260, 0, 40)
+arrowBtn.Position = UDim2.new(0, 10, 0, 130)
+arrowBtn.BackgroundColor3 = Color3.fromRGB(140, 50, 50)
+arrowBtn.BackgroundTransparency = 0.15
+arrowBtn.BorderSizePixel = 0
+arrowBtn.Text = "ВКЛЮЧИТЬ СТРЕЛКУ"
+arrowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+arrowBtn.Font = Enum.Font.GothamBold
+arrowBtn.TextSize = 13
+arrowBtn.TextStrokeTransparency = 0.4
+arrowBtn.Parent = mainFrame
+
+local arrowCorner = Instance.new("UICorner")
+arrowCorner.CornerRadius = UDim.new(0, 8)
+arrowCorner.Parent = arrowBtn
+
+arrowBtn.MouseEnter:Connect(function()
+    TweenService:Create(arrowBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
+end)
+arrowBtn.MouseLeave:Connect(function()
+    if not arrowOn then
+        TweenService:Create(arrowBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.15}):Play()
+    end
+end)
+
+arrowGui = createArrowGui()
+
+arrowBtn.MouseButton1Click:Connect(function()
+    arrowOn = not arrowOn
+    if arrowOn then
+        arrowBtn.Text = "ВЫКЛЮЧИТЬ СТРЕЛКУ  ✓"
+        arrowBtn.BackgroundColor3 = Color3.fromRGB(50, 140, 70)
+        if arrowGui then arrowGui.Enabled = true end
+    else
+        arrowBtn.Text = "ВКЛЮЧИТЬ СТРЕЛКУ"
+        arrowBtn.BackgroundColor3 = Color3.fromRGB(140, 50, 50)
+        if arrowGui then arrowGui.Enabled = false end
+    end
+end)
+
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Size = UDim2.new(0, 260, 0, 30)
+refreshBtn.Position = UDim2.new(0, 10, 0, 180)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 140)
+refreshBtn.Text = "🔄 ОБНОВИТЬ СТАТУС"
+refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+refreshBtn.Font = Enum.Font.GothamSemibold
+refreshBtn.TextSize = 12
+refreshBtn.Parent = mainFrame
+
+local refreshCorner = Instance.new("UICorner")
+refreshCorner.CornerRadius = UDim.new(0, 6)
+refreshCorner.Parent = refreshBtn
+
+refreshBtn.MouseButton1Click:Connect(function()
+    updateStatus()
+end)
+
+local hintLabel = Instance.new("TextLabel")
+hintLabel.Size = UDim2.new(1, -20, 0, 40)
+hintLabel.Position = UDim2.new(0, 10, 0, 220)
+hintLabel.BackgroundTransparency = 1
+hintLabel.Text = "Стрелка указывает на ящик даже за экраном\nУведомление при появлении ящика"
+hintLabel.TextColor3 = Color3.fromRGB(120, 120, 140)
+hintLabel.Font = Enum.Font.Gotham
+hintLabel.TextSize = 10
+hintLabel.TextXAlignment = Enum.TextXAlignment.Left
+hintLabel.TextYAlignment = Enum.TextYAlignment.Top
+hintLabel.Parent = mainFrame
+
+-- ═══════════════════════════════════════════
+-- ОБНОВЛЕНИЕ
+-- ═══════════════════════════════════════════
+local lastStatus = nil
+
+RunService.RenderStepped:Connect(function()
+    if highlightOn then
+        local current = findDrop()
+        if current and current ~= targetDrop then
+            enableHighlight()
+        elseif not current and highlight then
+            highlight:Destroy()
+            highlight = nil
+            targetDrop = nil
+        end
+    end
+    
+    if arrowOn then
+        updateArrow()
+    end
+    
+    local now = tick()
+    if not lastStatus or now - lastStatus > 1 then
+        lastStatus = now
+        updateStatus()
+    end
+    
+    local drop = findDrop()
+    if drop and not wasDropPresent then
+        if now - lastNotify > 4 then
+            lastNotify = now
+            task.spawn(showNotification)
+        end
+        wasDropPresent = true
+    elseif not drop then
+        wasDropPresent = false
+    end
+end)
+
+updateStatus()
+
+print("═══════════════════════════════════")
+print("🔴 GUI подсветки Drop + стрелка + уведомления")
+print("Цель: workspace.Drop")
+print("═══════════════════════════════════")
