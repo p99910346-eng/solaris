@@ -1,0 +1,455 @@
+-- GUI на F1 + F2 — кубы 8..100 (93 куба) + кнопки "Выбрать все" / "Отменить все" + свернуть окно
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Удаляем старое GUI
+local oldGui = playerGui:FindFirstChild("CubeGui")
+if oldGui then oldGui:Destroy() end
+
+-- ═══════════════════════════════════════════
+-- ГЕНЕРАЦИЯ СПИСКА КУБОВ (размеры 8..100 — 93 куба)
+-- Цвета генерируются по HSL-спектру — оттенок плавно меняется
+-- ═══════════════════════════════════════════
+local CUBE_PRESETS = {}
+
+-- Генерируем цвета через HSV (плавный переход по кругу)
+local total = 100 - 8 + 1  -- 93 куба
+for i = 1, total do
+    local size = 7 + i  -- 8, 9, 10, ... 100
+    local hue = (i - 1) / total  -- 0..1
+    local color = Color3.fromHSV(hue, 0.9, 1)  -- насыщенный, яркий
+    
+    -- Индивидуальные названия для первых 35 (проверенные цвета)
+    local names = {
+        [8]  = "Голубой",   [9]  = "Оранжевый",  [10] = "Салатовый",
+        [11] = "Фиолетовый",[12] = "Красный",    [13] = "Розовый",
+        [14] = "Жёлтый",    [15] = "Бирюзовый",  [16] = "Лаймовый",
+        [17] = "Индиго",    [18] = "Золотой",    [19] = "Малиновый",
+        [20] = "Небесный",  [21] = "Мятный",     [22] = "Коралловый",
+        [23] = "Лавандовый",[24] = "Белый",      [25] = "Чёрный",
+        [26] = "Изумрудный",[27] = "Маджента",   [28] = "Аквамарин",
+        [29] = "Янтарный",  [30] = "Синий",      [31] = "Персиковый",
+        [32] = "Сиреневый", [33] = "Хаки",       [34] = "Ржавый",
+        [35] = "Тёмно-серый",
+    }
+    
+    -- Для 24 (Белый) и 25 (Чёрный) задаём цвета вручную
+    if size == 24 then color = Color3.fromRGB(255, 255, 255) end
+    if size == 25 then color = Color3.fromRGB(30, 30, 30) end
+    
+    local name = names[size] or ("Цвет " .. size)
+    
+    table.insert(CUBE_PRESETS, {
+        Name = tostring(size) .. " · " .. name,
+        Color = color,
+        Size = size,
+        Model = nil,
+        Conn = nil,
+    })
+end
+
+local WALL_THICKNESS = 1
+
+local cubesActive = false
+local selected = {}
+for i = 1, #CUBE_PRESETS do
+    selected[i] = false
+end
+
+-- ═══════════════════════════════════════════
+-- ФИЛЬТР ПУЛЬ
+-- ═══════════════════════════════════════════
+local function isBullet(obj)
+    if not obj then return false end
+    local name = string.lower(obj.Name)
+    local parentName = ""
+    if obj.Parent then parentName = string.lower(obj.Parent.Name) end
+    return string.find(name, "bullet") or string.find(name, "projectile") or
+           string.find(name, "shot") or string.find(name, "ammo") or
+           string.find(name, "arrow") or string.find(name, "grenade") or
+           string.find(name, "missile") or string.find(name, "rocket") or
+           string.find(name, "laser") or string.find(name, "beam") or
+           string.find(name, "ray") or
+           string.find(parentName, "bullet") or string.find(parentName, "projectile") or
+           string.find(parentName, "shot") or string.find(parentName, "weapon") or
+           string.find(parentName, "gun") or string.find(parentName, "ammo")
+end
+
+-- ═══════════════════════════════════════════
+-- СОЗДАНИЕ КУБА
+-- ═══════════════════════════════════════════
+local function createCubeShell(size, thickness, color, name)
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local root = char.HumanoidRootPart
+    local half = size / 2
+    
+    local model = Instance.new("Model")
+    model.Name = name or "CubeShell"
+    model.Parent = workspace
+    
+    local walls = {
+        {Size = Vector3.new(size, thickness, size), Offset = Vector3.new(0,  half, 0)},
+        {Size = Vector3.new(size, thickness, size), Offset = Vector3.new(0, -half, 0)},
+        {Size = Vector3.new(size, size, thickness), Offset = Vector3.new(0, 0,  half)},
+        {Size = Vector3.new(size, size, thickness), Offset = Vector3.new(0, 0, -half)},
+        {Size = Vector3.new(thickness, size, size), Offset = Vector3.new( half, 0, 0)},
+        {Size = Vector3.new(thickness, size, size), Offset = Vector3.new(-half, 0, 0)},
+    }
+    
+    for i, wallData in ipairs(walls) do
+        local wall = Instance.new("Part")
+        wall.Name = "Wall_" .. i
+        wall.Shape = Enum.PartType.Block
+        wall.Size = wallData.Size
+        wall.Position = root.Position + wallData.Offset
+        wall.Anchored = true
+        wall.CanCollide = true
+        wall.CanTouch = true
+        wall.CanQuery = false
+        wall.Material = Enum.Material.ForceField
+        wall.Color = color
+        wall.Transparency = 0.2
+        wall.Parent = model
+        
+        wall.Touched:Connect(function(hit)
+            if isBullet(hit) then
+                hit:Destroy()
+                if hit.Parent and hit.Parent ~= workspace and hit.Parent ~= char then
+                    pcall(function() hit.Parent:Destroy() end)
+                end
+            end
+        end)
+    end
+    
+    return model
+end
+
+local function updateCubePosition(model, size)
+    if not model then return end
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local root = char.HumanoidRootPart
+    local half = size / 2
+    
+    local offsets = {
+        Vector3.new(0,  half, 0),
+        Vector3.new(0, -half, 0),
+        Vector3.new(0, 0,  half),
+        Vector3.new(0, 0, -half),
+        Vector3.new( half, 0, 0),
+        Vector3.new(-half, 0, 0),
+    }
+    
+    for i, wall in ipairs(model:GetChildren()) do
+        if wall:IsA("BasePart") and offsets[i] then
+            wall.Position = root.Position + offsets[i]
+        end
+    end
+end
+
+-- ═══════════════════════════════════════════
+-- СПАВН / УДАЛЕНИЕ
+-- ═══════════════════════════════════════════
+local buttonList = {}
+
+local function spawnCube(index)
+    local preset = CUBE_PRESETS[index]
+    if not preset then return end
+    if preset.Model then return end
+    
+    preset.Model = createCubeShell(preset.Size, WALL_THICKNESS, preset.Color, "Cube_" .. index)
+    if preset.Model then
+        preset.Conn = RunService.Heartbeat:Connect(function()
+            updateCubePosition(preset.Model, preset.Size)
+        end)
+    end
+end
+
+local function despawnCube(index)
+    local preset = CUBE_PRESETS[index]
+    if not preset then return end
+    
+    if preset.Model then
+        preset.Model:Destroy()
+        preset.Model = nil
+    end
+    if preset.Conn then
+        preset.Conn:Disconnect()
+        preset.Conn = nil
+    end
+end
+
+local function refreshButton(index)
+    local btn = buttonList[index]
+    local preset = CUBE_PRESETS[index]
+    if not btn or not preset then return end
+    
+    local mark = selected[index] and "  ✓" or ""
+    btn.Text = preset.Name .. "  (размер " .. preset.Size .. ")" .. mark
+    btn.BackgroundTransparency = selected[index] and 0 or 0.15
+end
+
+local function onCubeClicked(index)
+    selected[index] = not selected[index]
+    refreshButton(index)
+    
+    if cubesActive then
+        if selected[index] then
+            spawnCube(index)
+        else
+            despawnCube(index)
+        end
+    end
+end
+
+local function selectAll(state)
+    for i = 1, #CUBE_PRESETS do
+        selected[i] = state
+        refreshButton(i)
+        if cubesActive then
+            if state then
+                spawnCube(i)
+            else
+                despawnCube(i)
+            end
+        end
+    end
+    print(state and "✓ Все кубы выбраны" or "✗ Все кубы отменены")
+end
+
+-- ═══════════════════════════════════════════
+-- GUI
+-- ═══════════════════════════════════════════
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CubeGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+screenGui.Enabled = false
+
+local FULL_HEIGHT = 540
+local MIN_HEIGHT = 40
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 280, 0, FULL_HEIGHT)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -270)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = mainFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -100, 0, 40)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "КУБЫ-ОБМАНКИ"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 15
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.Parent = mainFrame
+
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 30, 0, 30)
+minBtn.Position = UDim2.new(1, -70, 0, 5)
+minBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 90)
+minBtn.Text = "−"
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 18
+minBtn.Parent = mainFrame
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.Parent = minBtn
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 14
+closeBtn.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.Parent = closeBtn
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui.Enabled = false
+end)
+
+local isMinimized = false
+minBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 280, 0, MIN_HEIGHT)
+        }):Play()
+        minBtn.Text = "+"
+    else
+        TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 280, 0, FULL_HEIGHT)
+        }):Play()
+        minBtn.Text = "−"
+    end
+end)
+
+local selectAllBtn = Instance.new("TextButton")
+selectAllBtn.Size = UDim2.new(0, 125, 0, 28)
+selectAllBtn.Position = UDim2.new(0, 10, 0, 42)
+selectAllBtn.BackgroundColor3 = Color3.fromRGB(40, 140, 70)
+selectAllBtn.Text = "✓ Выбрать все"
+selectAllBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectAllBtn.Font = Enum.Font.GothamBold
+selectAllBtn.TextSize = 12
+selectAllBtn.Parent = mainFrame
+
+local saCorner = Instance.new("UICorner")
+saCorner.CornerRadius = UDim.new(0, 6)
+saCorner.Parent = selectAllBtn
+
+local cancelAllBtn = Instance.new("TextButton")
+cancelAllBtn.Size = UDim2.new(0, 125, 0, 28)
+cancelAllBtn.Position = UDim2.new(1, -135, 0, 42)
+cancelAllBtn.BackgroundColor3 = Color3.fromRGB(140, 50, 50)
+cancelAllBtn.Text = "✗ Отменить все"
+cancelAllBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+cancelAllBtn.Font = Enum.Font.GothamBold
+cancelAllBtn.TextSize = 12
+cancelAllBtn.Parent = mainFrame
+
+local caCorner = Instance.new("UICorner")
+caCorner.CornerRadius = UDim.new(0, 6)
+caCorner.Parent = cancelAllBtn
+
+selectAllBtn.MouseButton1Click:Connect(function()
+    selectAll(true)
+end)
+
+cancelAllBtn.MouseButton1Click:Connect(function()
+    selectAll(false)
+end)
+
+local hintLabel = Instance.new("TextLabel")
+hintLabel.Size = UDim2.new(1, -20, 0, 20)
+hintLabel.Position = UDim2.new(0, 10, 0, 76)
+hintLabel.BackgroundTransparency = 1
+hintLabel.Text = "Клик — вкл/выкл · F2 — все выбранные"
+hintLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+hintLabel.Font = Enum.Font.Gotham
+hintLabel.TextSize = 11
+hintLabel.TextXAlignment = Enum.TextXAlignment.Left
+hintLabel.Parent = mainFrame
+
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -10, 1, -114)
+scroll.Position = UDim2.new(0, 5, 0, 104)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 5
+scroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 130)
+scroll.CanvasSize = UDim2.new(0, 0, 0, #CUBE_PRESETS * 45 + 10)
+scroll.Parent = mainFrame
+
+local function createCubeButton(preset, index, yPos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 235, 0, 40)
+    btn.Position = UDim2.new(0, 5, 0, yPos)
+    btn.BackgroundColor3 = preset.Color
+    btn.BackgroundTransparency = 0.15
+    btn.BorderSizePixel = 0
+    btn.Text = preset.Name .. "  (размер " .. preset.Size .. ")"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 12
+    btn.TextStrokeTransparency = 0.4
+    btn.Parent = scroll
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = btn
+    
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        if not selected[index] then
+            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.15}):Play()
+        end
+    end)
+    
+    btn.MouseButton1Click:Connect(function()
+        onCubeClicked(index)
+    end)
+    
+    buttonList[index] = btn
+    return btn
+end
+
+for i, preset in ipairs(CUBE_PRESETS) do
+    createCubeButton(preset, i, (i - 1) * 45)
+end
+
+-- ═══════════════════════════════════════════
+-- КЛАВИШИ
+-- ═══════════════════════════════════════════
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.F1 then
+        screenGui.Enabled = not screenGui.Enabled
+    
+    elseif input.KeyCode == Enum.KeyCode.F2 then
+        cubesActive = not cubesActive
+        if cubesActive then
+            for i = 1, #CUBE_PRESETS do
+                if selected[i] then
+                    spawnCube(i)
+                end
+            end
+            print("📦 Выбранные кубы показаны")
+        else
+            for i = 1, #CUBE_PRESETS do
+                despawnCube(i)
+            end
+            print("📦 Все кубы убраны")
+        end
+    end
+end)
+
+-- Респавн
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if cubesActive then
+        for i = 1, #CUBE_PRESETS do
+            if selected[i] then
+                spawnCube(i)
+            end
+        end
+    end
+end)
+
+print("═══════════════════════════════════")
+print("📦 GUI кубов загружено! (93 куба, размеры 8..100)")
+print("F1 — меню · F2 — вкл/выкл выбранные")
+print("Кнопки: ✓ Выбрать все / ✗ Отменить все")
+print("Кнопка '−' — свернуть окно")
+print("═══════════════════════════════════")
